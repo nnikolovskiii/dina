@@ -1,0 +1,29 @@
+__pycache__/
+**/__pycache__/
+.env
+.idea/
+app/code_process/__pycache__/
+app/templates/__pycache__/
+data/*
+*.pyc
+
+# Packages
+/dist/*
+
+# Unit test / coverage reports
+.coverage
+.pytest_cache
+
+.DS_Store
+.idea/*
+.python-version
+.vscode/*
+
+/docs/site/*
+.mypy_cache
+
+.venv
+/poetry.toml
+
+**/__init__.py
+

@@ -1,0 +1,46 @@
+[tool.poetry]
+name = "dina"
+version = "0.1.0"
+description = ""
+authors = ["Nikola Nikolovski <nikolovski.nikola42@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = {extras = ["standard"], version = "^0.115.5"}
+pymongo = ">=4.9,<4.10"
+qdrant-client = "^1.12.1"
+requests = "^2.32.3"
+huggingface-hub = "^0.26.2"
+openai = "^1.55.0"
+gitpython = "^3.1.43"
+bs4 = "^0.0.2"
+markdown = "^3.7"
+transformers = "^4.46.3"
+langchain-text-splitters = "^0.3.2"
+torch = "^2.5.1"
+datasets = "^3.1.0"
+einops = "^0.8.0"
+readability-lxml = "^0.8.1"
+lxml = {extras = ["html-clean"], version = "^5.3.0"}
+markdownify = "^0.14.1"
+websockets = "^14.1"
+motor = "^3.6.0"
+html2text = "^2024.2.26"
+rank-bm25 = "^0.2.2"
+elasticsearch = "^8.16.0"
+pyjwt = "^2.10.1"
+bcrypt = "^4.2.1"
+langchain-ollama = "^0.2.2"
+pydantic-ai = "^0.0.15"
+cryptography = "^44.0.0"
+scikit-learn = "^1.6.1"
+plotly = "^5.24.1"
+cohere = "^5.13.11"
+dependency-injector = "^4.45.0"
+python-telegram-bot = "^21.10"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
