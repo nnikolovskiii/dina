@@ -3,13 +3,13 @@ from typing import List
 from app.pipelines.pipeline import ChatPipeline
 
 
-class AreaPicker(ChatPipeline):
+class GuardPipeline(ChatPipeline):
     @property
     def response_type(self) -> str:
         return "dict"
 
-    def template(self, question: str, areas: List[str]) -> str:
-        return f"""Given the below question determine what area is the question from.a
+    def template(self, question: str, area: str) -> str:
+        return f"""Given the below question answer it based on the information provided in the context.
 
 Question: {question}
 

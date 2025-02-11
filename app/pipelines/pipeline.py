@@ -1,5 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from typing import Any, TypeVar, Tuple, Optional, List, Dict, AsyncGenerator
 
 from pydantic.v1 import BaseModel
@@ -43,7 +44,10 @@ class ChatPipeline(Pipeline):
         pass
 
     async def execute(self, **kwargs) -> Any:
-        template = self.template(**kwargs)
+        template_args = deepcopy(kwargs)
+        if "class_type" in template_args:
+            del template_args["class_type"]
+        template = self.template(**template_args)
 
         if self.response_type == "str":
             processor = self._str_processor
