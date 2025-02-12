@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from app.models.process.process import Process
+from app.docs_process.process import Process
 from app.models.docs import Link
 from app.models.process_tracker import ProgressCoordinator
 

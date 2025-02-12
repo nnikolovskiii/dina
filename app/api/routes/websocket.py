@@ -11,6 +11,8 @@ from app.chat.models import Message, Chat
 from app.container import container
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
+from app.dina.dina_chat import dina_chat
+from app.dina.pipelines.action_picker import action_picker
 from app.llms.models import StreamChatLLM
 from app.models.flag import Flag
 import json
@@ -35,6 +37,7 @@ async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
             message, chat_id = data
 
             history = await chat_service.get_history_from_chat(chat_id=chat_id)
+            print(chat_id)
             if chat_id is None:
                 chat_id = await chat_service.save_user_chat(user_message=message)
 
@@ -70,8 +73,8 @@ async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
                     await websocket.send_text(response_chunk)
                     await asyncio.sleep(0.0001)
             else:
-                async for response_chunk in active_model.generate(
-                        message=message,
+                async for response_chunk in action_picker(
+                        question=message,
                         system_message="You are an expert coding assistant.",
                         history=history,
                 ):
@@ -79,7 +82,7 @@ async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
                     await websocket.send_text(response_chunk)
                     await asyncio.sleep(0.0001)
 
-            await websocket.send_text("<ASTOR>")
+            await websocket.send_text(f"<ASTOR>:{chat_id}")
             await asyncio.sleep(0.1)
 
             await mdb.add_entry(Message(

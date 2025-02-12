@@ -22,7 +22,7 @@ class Pipeline(ABC):
 
     @abstractmethod
     def template(self, **kwargs) -> str:
-        """Define the template that is sent to the AI model"""
+        """Define the template that is sent to the AI models"""
         pass
 
     @abstractmethod
@@ -40,7 +40,7 @@ class ChatPipeline(Pipeline):
     @property
     @abstractmethod
     def response_type(self) -> str:
-        """Return the response format type: 'str', 'dict', 'model', or 'stream'."""
+        """Return the response format type: 'str', 'dict', 'models', or 'stream'."""
         pass
 
     async def execute(self, **kwargs) -> Any:
@@ -53,7 +53,7 @@ class ChatPipeline(Pipeline):
             processor = self._str_processor
         elif self.response_type == "dict":
             processor = self._dict_processor
-        elif self.response_type == "model":
+        elif self.response_type == "models":
             processor = self._model_processor
         else:
             raise ValueError(f"Unsupported response type: {self.response_type}")
