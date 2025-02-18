@@ -4,7 +4,6 @@ import asyncio
 from bson import ObjectId
 from fastapi import WebSocket
 
-from app.chat.chat import chat
 import logging
 
 from app.chat.models import Message, Chat
@@ -12,7 +11,7 @@ from app.container import container
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
 from app.dina.dina_chat import dina_chat
-from app.dina.pipelines.action_picker import action_picker
+from app.dina.experiments.agent import action_picker
 from app.llms.models import StreamChatLLM
 from app.models.flag import Flag
 import json
@@ -62,18 +61,16 @@ async def websocket_endpoint(websocket: WebSocket, mdb: mdb_dep):
             response = ""
 
             if docs_flag.active:
-                async for response_chunk in chat(
-                        message=message,
+                async for response_chunk in dina_chat(
+                        question=message,
                         system_message="You are an expert coding assistant.",
                         history=history,
-                        active_model=active_model,
-                        mdb=mdb
                 ):
                     response += response_chunk
                     await websocket.send_text(response_chunk)
                     await asyncio.sleep(0.0001)
             else:
-                async for response_chunk in action_picker(
+                async for response_chunk in await action_picker(
                         question=message,
                         system_message="You are an expert coding assistant.",
                         history=history,

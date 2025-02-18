@@ -9,7 +9,7 @@ from app.llms.models import StreamChatLLM, ChatLLM
 from app.pipelines.pipeline import ChatPipeline, StreamPipeline
 
 
-class GenerateResponseFromService(StreamPipeline):
+class ServiceResponse(StreamPipeline):
     @property
     def response_type(self) -> str:
         return "str"
@@ -33,7 +33,7 @@ Write it in a clear format.
 Response in Macedonian:"""
 
 
-async def generate_response(
+async def generate_service_info_response(
         question: str,
         history_summary: str,
         service_info: str,
@@ -42,7 +42,7 @@ async def generate_response(
 ) -> AsyncGenerator[str, None]:
     chat_service = container.chat_service()
     streaming_model = await chat_service.get_model(model_name="gpt-4o", class_type=StreamChatLLM)
-    retriever_pipeline = GenerateResponseFromService(streaming_model)
+    retriever_pipeline = ServiceResponse(streaming_model)
 
     async for response_chunk in retriever_pipeline.execute(
             question=question,
