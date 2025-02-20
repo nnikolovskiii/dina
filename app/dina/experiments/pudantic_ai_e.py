@@ -1,9 +1,11 @@
 import asyncio
+import datetime
 import os
 from typing import List, Dict
 
 from dotenv import load_dotenv
 from pydantic_ai import Agent, RunContext
+from pydantic_ai.messages import ModelRequest, SystemPromptPart, UserPromptPart, ModelResponse, TextPart
 from pydantic_ai.models.openai import OpenAIModel
 
 from app.container import container
@@ -16,19 +18,28 @@ from app.llms.models import ChatLLM
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 
-# model = OpenAIModel(
-#     'openai:gpt-4o',
-#     api_key=api_key,
-# )
 agent = Agent(
     'openai:gpt-4o',
+    deps_type=str,
     retries=1,
     system_prompt=["You are an AI assistant that handles performing tasks for administrative institutions in Macedonia.",
                    "Your name is Dina",
-                   "Do not answer anything that is not Macedonian institution related."]
+                   "Do not answer anything that is not Macedonian institution related."
+                   "Only answer in Macedonian."]
 )
 
 agent.api_key = api_key
+def get_system_messages()->ModelRequest:
+    return ModelRequest(
+        parts=[SystemPromptPart(content='You are an AI assistant that handles performing tasks for administrative institutions in Macedonia.', part_kind='system-prompt'),
+               SystemPromptPart(content='Your name is Dina', part_kind='system-prompt'),
+               SystemPromptPart(content='Do not answer anything that is not Macedonian institution related.Only answer in Macedonian.', part_kind='system-prompt'),
+               SystemPromptPart(content="The user's name is Nikola Nikolovski.", part_kind='system-prompt')])
+
+@agent.system_prompt
+def add_the_users_name(ctx: RunContext[str]) -> str:
+    return f"The user's name is {ctx.deps}."
+
 @agent.tool
 async def get_service_info(
         ctx: RunContext[str],
@@ -94,13 +105,3 @@ async def get_service_info(
         return "Оваа задача не е релевантна за административните институции во Македонија. Доколку ви треба помош со информации или постапки поврзани со институции во Македонија, слободно прашајте!"
 
 
-def main():
-    # > Paris
-
-    dice_result = agent.run_sync('Нарачај ми пица.')
-
-    print(dice_result.data)
-        # > London
-
-
-main()

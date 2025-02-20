@@ -30,8 +30,13 @@ class ChatService:
         self.llm_factory = llm_factory
         self.fernet = fernet
 
-    async def get_chats_by_datetime(self):
-        chats = await self.mdb.get_entries(Chat)
+    async def get_chats_by_datetime(self, user_email: str):
+        chats = await self.mdb.get_entries(
+            doc_filter={"user_email": user_email},
+            class_type=Chat
+        )
+        print(user_email)
+        print(chats)
         chats = sorted(chats, key=lambda x: x.timestamp, reverse=True)
 
         categorized_chats = {
@@ -174,19 +179,20 @@ class ChatService:
             for i in range(len(user_messages)):
                 history.append({"role": "user", "content": user_messages[i].content})
                 if i < len(assistant_messages):
-                    history.append({"role": "user", "content": assistant_messages[i].content})
+                    history.append({"role": "assistant", "content": assistant_messages[i].content})
 
         return history
 
     async def save_user_chat(
             self,
             user_message: str,
+            user_email: str,
     ) -> str:
-        chat_llm = await self.get_model(model_name="deepseek-chat", class_type=ChatLLM)
+        chat_llm = await self.get_model(model_name="gpt-4o-mini", class_type=ChatLLM)
         chat_name_pipeline = ChatTitlePipeline(chat_llm=chat_llm)
         response = await chat_name_pipeline.execute(message=user_message)
 
-        chat_obj = Chat(title=response["title"])
+        chat_obj = Chat(title=response["title"], user_email=user_email)
         chat_obj.timestamp = datetime.now()
 
         return await self.mdb.add_entry(chat_obj)
