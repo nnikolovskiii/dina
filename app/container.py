@@ -41,6 +41,7 @@ class Container(containers.DeclarativeContainer):
     user_service = providers.Factory(
         UserService,
         mdb=mdb,
+        fernet=fernet
     )
 
     password_service = providers.Factory(

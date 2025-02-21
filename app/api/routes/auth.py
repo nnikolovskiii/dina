@@ -7,7 +7,7 @@ from pydantic import BaseModel
 import jwt
 from fastapi import WebSocket
 from starlette import status
-from app.auth.models.user import User
+from app.auth.models.user import User, UserInfo
 from app.container import container
 from datetime import datetime, timedelta, timezone
 from jwt.exceptions import PyJWTError
@@ -95,6 +95,24 @@ async def login(
         "token_type": "bearer"
     }
 
+@router.post("/add-user-info")
+async def add_user_info(
+        user_info: UserInfo,
+) -> bool:
+    user_service = container.user_service()
+    exists = await user_service.check_user_exist(user_info.email)
+    if exists:
+        return await user_service.encrypt_add_user_info(user_info)
+    return False
+
+@router.get("/get-user-info")
+async def get_user_info(
+        email: EmailStr,
+):
+    user_service = container.user_service()
+    exists = await user_service.check_user_exist(email)
+    if exists:
+      return await user_service.get_user_info_decrypted(email)
 
 @router.post("/logout")
 async def logout(response: Response):
@@ -170,43 +188,3 @@ async def get_protected_data(
         "email": current_user.email,
         "full_name": current_user.full_name
     }
-
-# @router.get("/auth/google/callback")
-# async def auth_google_callback(request: Request, db: Session = Depends(get_db)):
-#     try:
-#         token = await oauth.google.authorize_access_token(request)
-#     except Exception as e:
-#         raise HTTPException(status_code=400, detail="OAuth error")
-#
-#     user_info = token.get('userinfo')
-#     if not user_info or not user_info.get("email_verified"):
-#         raise HTTPException(status_code=400, detail="Invalid user data")
-#
-#     email = user_info.email
-#     name = user_info.name
-#
-#     # Check existing user
-#     user = db.query(User).filter(User.email == email).first()
-#
-#     if user and not user.is_google_auth:
-#         raise HTTPException(
-#             status_code=400,
-#             detail="Email already registered with password login"
-#         )
-#
-#     if not user:
-#         # Create new Google user
-#         user = User(
-#             email=email,
-#             full_name=name,
-#             is_google_auth=True
-#         )
-#         db.add(user)
-#         db.commit()
-#
-#     # Generate JWT (same as email/password flow)
-#     jwt_token = jwt.encode(...)
-#
-#     response = RedirectResponse(url="/")
-#     response.set_cookie(...)  # Same as before
-#     return response
