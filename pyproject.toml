@@ -42,6 +42,7 @@ python-telegram-bot = "^21.10"
 passlib = "^1.7.4"
 jose = "^1.0.0"
 pytest = "^8.3.4"
+weasyprint = "^64.1"
 
 
 [build-system]

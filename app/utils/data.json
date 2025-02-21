@@ -1,0 +1,11 @@
+{
+    "Name": "Alice Johnson",
+    "Age": 29,
+    "Email": "alice@example.com",
+    "Country": "USA",
+    "Occupation": "Software Engineer",
+    "Company": "TechCorp",
+    "Skills": ["Python", "Django", "Machine Learning"],
+    "Experience": "5 years",
+    "Hobbies": ["Reading", "Traveling", "Gaming"]
+}
