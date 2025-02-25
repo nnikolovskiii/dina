@@ -8,6 +8,8 @@ from app.auth.services.user import UserService
 from app.chat.service import ChatService
 from app.databases.mongo_db import MongoDBDatabase
 from app.llms.llm_factory import LLMFactory
+from app.pdf_handler.file_system_service import FileSystemService
+from app.pdf_handler.user_files_service import UserFilesService
 from app.telegram.telegram_bot import TelegramBot
 
 
@@ -47,6 +49,17 @@ class Container(containers.DeclarativeContainer):
     password_service = providers.Factory(
         PasswordService,
         mdb=mdb,
+    )
+
+    file_system_service = providers.Factory(
+        FileSystemService,
+    )
+
+    user_files_service = providers.Factory(
+        UserFilesService,
+        mdb=mdb,
+        file_system_service=file_system_service,
+        user_service=user_service,
     )
 
 

@@ -14,6 +14,8 @@ logging.getLogger('pymongo').setLevel(logging.WARNING)
 async def lifespan(app: FastAPI):
     await get_mongo_db()
     await get_qdrant_db()
+    user_files_service = container.user_files_service()
+    await user_files_service.upload_file("nikolovski.nikola42@gmail.com")
     # bot = container.telegram_bot()
     # asyncio.create_task(bot.start())
     yield
@@ -37,7 +39,7 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
