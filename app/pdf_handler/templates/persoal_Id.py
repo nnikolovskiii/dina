@@ -5,6 +5,7 @@ from app.databases.mongo_db import MongoEntry
 
 
 class PersonalID(MongoEntry):
+    download_link: Optional[str] = None
     name: Optional[str] = None
     surname: Optional[str] = None
     surname_before_marriage: Optional[str] = None
@@ -62,7 +63,7 @@ th, td {{ padding: 8px; border: 1px solid #ddd; }}
                 <td><b>МЕСТО НА РАЃАЊЕ</b><br>{personal_id.place_of_birth}</td>
             </tr>
             <tr>
-                <td colspan="2"><b>МАТИЧЕН БРОЈ НА ГРАЃАНИНОТ</b><br>{personal_id.personal_id}</td>
+                <td colspan="2"><b>МАТИЧЕН БРОЈ НА ГРАЃАНИНОТ</b><br>{personal_id.eid}</td>
             </tr>
             <tr>
                 <td><b>ПОЛ</b><br>{personal_id.gender}</td>
@@ -80,7 +81,7 @@ th, td {{ padding: 8px; border: 1px solid #ddd; }}
 
     <div class="section">
         <h2>4. ПОДАТОЦИ ЗА ПРЕТХОДЕН ДОКУМЕНТ НА ПОДНОСИТЕЛОТ</h2>
-        <p><span class="label">БРОЈ НА ЛИЧНА КАРТА:</span> <span class="underline">{personal_id.eid}</span></p>
+        <p><span class="label">БРОЈ НА ЛИЧНА КАРТА:</span> <span class="underline">{personal_id.personal_id}</span></p>
         <p><span class="label">ОРГАН КОЈ ЈА ИЗДАЛ:</span> <span class="underline">{personal_id.institution}</span></p>
         <p>Потпис на подносителот _______________________________</p>
         <p>Датум и место на поднесување на барањето: _______________________________ 20____</p>

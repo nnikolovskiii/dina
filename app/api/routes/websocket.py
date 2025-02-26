@@ -1,5 +1,5 @@
 import datetime
-from typing import Annotated
+from typing import Annotated, Any
 import asyncio
 
 from bson import ObjectId
@@ -13,7 +13,7 @@ import logging
 
 from app.chat.models import Message, Chat
 from app.container import container
-from app.databases.mongo_db import MongoDBDatabase
+from app.databases.mongo_db import MongoDBDatabase, MongoEntry
 from app.databases.singletons import get_mongo_db
 from app.dina.experiments.pudantic_ai_e import agent, get_system_messages
 from app.llms.models import StreamChatLLM
@@ -25,6 +25,11 @@ from fastapi import APIRouter, Depends
 
 router = APIRouter()
 mdb_dep = Annotated[MongoDBDatabase, Depends(get_mongo_db)]
+
+
+class WebsocketData(MongoEntry):
+    data_type: str
+    data: Any
 
 
 @router.websocket("/")
@@ -44,7 +49,7 @@ async def websocket_endpoint(
 
             history = await chat_service.get_history_from_chat(chat_id=chat_id)
             message_history = convert_history(history)
-            # print(message_history)
+
             if chat_id is None:
                 chat_id = await chat_service.save_user_chat(user_message=message, user_email=current_user.email)
 
@@ -63,8 +68,9 @@ async def websocket_endpoint(
             )
 
             active_model = await chat_service.get_active_model(class_type=StreamChatLLM)
-            # print(active_model.chat_model_config)
-            # print(active_model.chat_api)
+
+            logging.info("Active model config: %s", active_model.chat_model_config)
+            logging.info("Active model api: %s", active_model.chat_api)
 
             response = ""
 
@@ -75,22 +81,29 @@ async def websocket_endpoint(
                         history=history,
                 ):
                     response += response_chunk
-                    await websocket.send_text(response_chunk)
+                    websocket_data = WebsocketData(
+                        data=response_chunk,
+                        data_type="stream",
+                    )
+                    await websocket.send_json(websocket_data.model_dump())
                     await asyncio.sleep(0.0001)
             else:
-                async with agent.run_stream(message, deps=current_user.full_name,
+                async with agent.run_stream(message, deps=current_user,
                                             message_history=message_history) as result:
                     async for message in result.stream_text(delta=True):
                         response += message
-                        await websocket.send_text(message)
+                        websocket_data = WebsocketData(
+                            data=message,
+                            data_type="stream",
+                        )
+                        await websocket.send_json(websocket_data.model_dump())
                         await asyncio.sleep(0.0001)
 
-                    print("***************************************************")
-                    print(result.new_messages())
-                    print("***************************************************")
-                    print(result.all_messages())
-
-            await websocket.send_text(f"<ASTOR>:{chat_id}")
+            websocket_data = WebsocketData(
+                data=f"<ASTOR>:{chat_id}",
+                data_type="stream",
+            )
+            await websocket.send_json(websocket_data.model_dump())
             await asyncio.sleep(0.1)
 
             await mdb.add_entry(Message(
@@ -104,7 +117,7 @@ async def websocket_endpoint(
             await mdb.update_entry(chat_obj)
 
         except Exception as e:
-            print(f"Error: {e}")
+            logging.error(f"Error: {e}")
             break
 
 

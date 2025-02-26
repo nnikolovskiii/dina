@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 class FileSystemService:
-    def __init__(self, base_url: str | None):
+    def __init__(self, base_url: Optional[str] = None):
         load_dotenv()
         self.base_url = os.getenv("FILE_SYSTEM_URL") if base_url is None else base_url
 

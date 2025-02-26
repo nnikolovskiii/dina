@@ -3,9 +3,11 @@ from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 import logging
-from app.api.routes import code, chat, websocket, test, collection_data, code_files, docs, links, process, flag, auth
+from app.api.routes import code, chat, websocket, test, collection_data, code_files, docs, links, process, flag, auth, \
+    pdf_handler
 from app.container import container
 from app.databases.singletons import get_mongo_db, get_qdrant_db
+from app.pdf_handler.templates.persoal_Id import PersonalID
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('pymongo').setLevel(logging.WARNING)
@@ -14,8 +16,9 @@ logging.getLogger('pymongo').setLevel(logging.WARNING)
 async def lifespan(app: FastAPI):
     await get_mongo_db()
     await get_qdrant_db()
-    user_files_service = container.user_files_service()
-    await user_files_service.upload_file("nikolovski.nikola42@gmail.com")
+    # user_files_service = container.user_files_service()
+    # lol = user_files_service.get_missing(PersonalID(name="nikola"))
+    # print(lol)
     # bot = container.telegram_bot()
     # asyncio.create_task(bot.start())
     yield
@@ -58,6 +61,7 @@ app.include_router(links.router, prefix="/links", tags=["links"])
 app.include_router(process.router, prefix="/process", tags=["process"])
 app.include_router(flag.router, prefix="/flag", tags=["flag"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
+app.include_router(pdf_handler.router, prefix="/pdf", tags=["pdf"])
 
 
 

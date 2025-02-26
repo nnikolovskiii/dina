@@ -371,3 +371,4 @@ class MongoDBDatabase:
             update_operation
         )
         return result.modified_count > 0
+

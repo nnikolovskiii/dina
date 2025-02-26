@@ -8,6 +8,7 @@ from pydantic_ai import Agent, RunContext
 from pydantic_ai.messages import ModelRequest, SystemPromptPart, UserPromptPart, ModelResponse, TextPart
 from pydantic_ai.models.openai import OpenAIModel
 
+from app.auth.models.user import User
 from app.container import container
 from app.dina.models.service_procedure import ServiceProcedure, ServiceType
 from app.dina.pipelines.guard import GuardPipeline, GuardOutput
@@ -20,7 +21,7 @@ api_key = os.getenv("OPENAI_API_KEY")
 
 agent = Agent(
     'openai:gpt-4o',
-    deps_type=str,
+    deps_type=User,
     retries=1,
     system_prompt=["You are an AI assistant that handles performing tasks for administrative institutions in Macedonia.",
                    "Your name is Dina",
@@ -38,7 +39,23 @@ def get_system_messages()->ModelRequest:
 
 @agent.system_prompt
 def add_the_users_name(ctx: RunContext[str]) -> str:
-    return f"The user's name is {ctx.deps}."
+    return f"The user's name is {ctx.deps.full_name}."
+
+@agent.tool
+async def create_pdf_file_for_personal_id(
+        ctx: RunContext[str],
+):
+    """Creates a pdf and automatically fills the information needed to make an application for recieving a personal id.
+
+    Args:
+        ctx: The context.
+
+    Returns:
+        Returns the download link for the document.
+    """
+    user_files_service = container.user_files_service()
+    download_link = await user_files_service.upload_file(user_email=ctx.deps.email)
+    return f"This is the download link for the personal id document: {download_link}"
 
 @agent.tool
 async def get_service_info(
