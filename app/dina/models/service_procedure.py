@@ -15,7 +15,7 @@ class ServiceProcedure(MongoEntry):
     # def __str__(self) -> str:
     #     return f"ServiceProcedure(\nname: {self.name}\nservice_type: {self.service_type}\ndesc: {self.desc})"
 
-
-
-
-
+class ServiceProcedureDocument(MongoEntry):
+    procedure_id: str
+    name: str
+    link: str

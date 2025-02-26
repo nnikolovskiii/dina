@@ -1,5 +1,5 @@
 import datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, List
 import asyncio
 
 from bson import ObjectId
@@ -8,7 +8,6 @@ from pydantic_ai.messages import ModelRequest, SystemPromptPart, UserPromptPart,
 
 from app.api.routes.auth import get_current_user_websocket
 from app.auth.models.user import User
-from app.chat.chat import chat
 import logging
 
 from app.chat.models import Message, Chat
@@ -16,6 +15,7 @@ from app.container import container
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
 from app.databases.singletons import get_mongo_db
 from app.dina.experiments.pudantic_ai_e import agent, get_system_messages
+from app.dina.models.service_procedure import ServiceProcedureDocument
 from app.llms.models import StreamChatLLM
 from app.models.flag import Flag
 import json
@@ -38,87 +38,109 @@ async def websocket_endpoint(
         mdb: mdb_dep,
         current_user: User = Depends(get_current_user_websocket)
 ):
-    chat_service = container.chat_service()
-
     await websocket.accept()
     while True:
         try:
             data = await websocket.receive_text()
             data = json.loads(data)
-            message, chat_id = data
+            received_data = WebsocketData(**data)
 
-            history = await chat_service.get_history_from_chat(chat_id=chat_id)
-            message_history = convert_history(history)
-
-            if chat_id is None:
-                chat_id = await chat_service.save_user_chat(user_message=message, user_email=current_user.email)
-
-            chat_obj = await mdb.get_entry(ObjectId(chat_id), Chat)
-
-            await mdb.add_entry(Message(
-                role="user",
-                content=message,
-                order=chat_obj.num_messages,
-                chat_id=chat_id
-            ))
-
-            docs_flag = await mdb.get_entry_from_col_values(
-                columns={"name": "docs"},
-                class_type=Flag
-            )
-
-            active_model = await chat_service.get_active_model(class_type=StreamChatLLM)
-
-            logging.info("Active model config: %s", active_model.chat_model_config)
-            logging.info("Active model api: %s", active_model.chat_api)
-
-            response = ""
-
-            if docs_flag.active:
-                async for response_chunk in active_model.generate(
-                        message=message,
-                        system_message="You are an expert coding assistant.",
-                        history=history,
-                ):
-                    response += response_chunk
-                    websocket_data = WebsocketData(
-                        data=response_chunk,
-                        data_type="stream",
-                    )
-                    await websocket.send_json(websocket_data.model_dump())
-                    await asyncio.sleep(0.0001)
-            else:
-                async with agent.run_stream(message, deps=current_user,
-                                            message_history=message_history) as result:
-                    async for message in result.stream_text(delta=True):
-                        response += message
-                        websocket_data = WebsocketData(
-                            data=message,
-                            data_type="stream",
-                        )
-                        await websocket.send_json(websocket_data.model_dump())
-                        await asyncio.sleep(0.0001)
-
-            websocket_data = WebsocketData(
-                data=f"<ASTOR>:{chat_id}",
-                data_type="stream",
-            )
-            await websocket.send_json(websocket_data.model_dump())
-            await asyncio.sleep(0.1)
-
-            await mdb.add_entry(Message(
-                role="assistant",
-                content=response,
-                order=chat_obj.num_messages,
-                chat_id=chat_id
-            ))
-
-            chat_obj.num_messages += 1
-            await mdb.update_entry(chat_obj)
+            if received_data.data_type == "chat":
+                await chat(mdb=mdb, current_user=current_user, received_data=received_data, websocket=websocket)
 
         except Exception as e:
             logging.error(f"Error: {e}")
             break
+
+
+async def chat(
+        mdb: MongoDBDatabase,
+        current_user: User,
+        received_data: WebsocketData,
+        websocket: WebSocket,
+):
+    chat_service = container.chat_service()
+
+    message, chat_id = received_data.data
+
+    history = await chat_service.get_history_from_chat(chat_id=chat_id)
+    message_history = convert_history(history)
+
+    if chat_id is None:
+        chat_id = await chat_service.save_user_chat(user_message=message, user_email=current_user.email)
+
+    chat_obj = await mdb.get_entry(ObjectId(chat_id), Chat)
+
+    await mdb.add_entry(Message(
+        role="user",
+        content=message,
+        order=chat_obj.num_messages,
+        chat_id=chat_id
+    ))
+
+    response = ""
+
+    async with agent.run_stream(message, deps=current_user,
+                                message_history=message_history) as result:
+        async for message in result.stream_text(delta=True):
+            response += message
+            websocket_data = WebsocketData(
+                data=message,
+                data_type="stream",
+            )
+            await websocket.send_json(websocket_data.model_dump())
+            await asyncio.sleep(0.0001)
+
+        for message in result.all_messages():
+            if isinstance(message, ModelRequest):
+                parts = message.parts
+                for part in parts:
+                    if hasattr(part, "tool_name") and part.tool_name:
+                        if len(part.content) == 2:
+                            service_ids = part.content[1]
+                            objs:List[ServiceProcedureDocument] = await mdb.get_entries_by_attribute_in_list(
+                                class_type=ServiceProcedureDocument,
+                                attribute_name="procedure_id",
+                                values=service_ids,
+                            )
+                            li = {elem.link: elem.name for elem in objs}
+
+                            links = """
+                            <div class="pdf-links">
+                            """
+
+                            for link,name in li.items():
+                                links+=f"""<div class="pdf-link">
+                                    <div class="pdf-image"></div>
+                                    <a href="{link}">{name}</a>
+                                </div>
+                                """
+                            links += "</div>"
+
+                            response+=links
+                            websocket_data = WebsocketData(
+                                data=links,
+                                data_type="stream",
+                            )
+                            await websocket.send_json(websocket_data.model_dump())
+
+
+    websocket_data = WebsocketData(
+        data=f"<ASTOR>:{chat_id}",
+        data_type="stream",
+    )
+    await websocket.send_json(websocket_data.model_dump())
+    await asyncio.sleep(0.1)
+
+    await mdb.add_entry(Message(
+        role="assistant",
+        content=response,
+        order=chat_obj.num_messages,
+        chat_id=chat_id
+    ))
+
+    chat_obj.num_messages += 1
+    await mdb.update_entry(chat_obj)
 
 
 def convert_history(history):

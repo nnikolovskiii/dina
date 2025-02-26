@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 import os
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 from dotenv import load_dotenv
 from pydantic_ai import Agent, RunContext
@@ -61,7 +61,7 @@ async def create_pdf_file_for_personal_id(
 async def get_service_info(
         ctx: RunContext[str],
         question: str
-) -> str:
+) -> Tuple[str, List[str]]:
     """Get information about services of institutions in Macedonia relevant to the user question.
 
     Args:
@@ -116,9 +116,9 @@ async def get_service_info(
         service_info += "\n".join([str(elem) for elem in service_type_objects])
 
 
-        return service_info
+        return service_info, selected_services.service_ids
 
     else:
-        return "Оваа задача не е релевантна за административните институции во Македонија. Доколку ви треба помош со информации или постапки поврзани со институции во Македонија, слободно прашајте!"
+        return "Оваа задача не е релевантна за административните институции во Македонија. Доколку ви треба помош со информации или постапки поврзани со институции во Македонија, слободно прашајте!", []
 
 

@@ -372,3 +372,45 @@ class MongoDBDatabase:
         )
         return result.modified_count > 0
 
+    async def get_entries_by_attribute_in_list(
+            self,
+            class_type: TypingType[T],
+            attribute_name: str,
+            values: List[Any],
+            collection_name: Optional[str] = None,
+    ) -> List[T]:
+        """
+        Retrieve all entries where the specified attribute matches any value in the provided list.
+
+        Args:
+            class_type: The Pydantic model class type.
+            attribute_name: The name of the attribute to filter.
+            values: List of values to match against.
+            collection_name: Optional collection name; defaults to the class name.
+
+        Returns:
+            List of model instances matching the criteria.
+        """
+        doc_filter = {attribute_name: {"$in": values}}
+        return await self.get_entries(class_type, doc_filter, collection_name)
+
+    async def get_entries_dict_by_attribute_in_list(
+            self,
+            collection_name: str,
+            attribute_name: str,
+            values: List[Any],
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieve all dictionary entries where the specified attribute matches any value in the list.
+
+        Args:
+            collection_name: Name of the collection to query.
+            attribute_name: The name of the attribute to filter.
+            values: List of values to match against.
+
+        Returns:
+            List of dictionaries matching the criteria.
+        """
+        doc_filter = {attribute_name: {"$in": values}}
+        return await self.get_entries_dict(collection_name, doc_filter)
+
