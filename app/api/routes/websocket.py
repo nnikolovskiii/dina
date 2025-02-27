@@ -95,7 +95,7 @@ async def chat(
             if isinstance(message, ModelRequest):
                 parts = message.parts
                 for part in parts:
-                    if hasattr(part, "tool_name") and part.tool_name:
+                    if hasattr(part, "tool_name") and part.tool_name == "get_service_info":
                         if len(part.content) == 2:
                             service_ids = part.content[1]
                             objs:List[ServiceProcedureDocument] = await mdb.get_entries_by_attribute_in_list(
@@ -121,6 +121,14 @@ async def chat(
                             websocket_data = WebsocketData(
                                 data=links,
                                 data_type="stream",
+                            )
+                            await websocket.send_json(websocket_data.model_dump())
+
+                    if hasattr(part, "tool_name") and part.tool_name == "create_pdf_file_for_personal_id":
+                        if not part.content[1]:
+                            websocket_data = WebsocketData(
+                                data=f"{part.content[0]}",
+                                data_type="form",
                             )
                             await websocket.send_json(websocket_data.model_dump())
 

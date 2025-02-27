@@ -45,7 +45,7 @@ def add_the_users_name(ctx: RunContext[str]) -> str:
 async def create_pdf_file_for_personal_id(
         ctx: RunContext[str],
 ):
-    """Creates a pdf and automatically fills the information needed to make an application for recieving a personal id.
+    """Creates a pdf and automatically fills the information needed to make an application for receiving a personal id. Do this when explicitly told to.
 
     Args:
         ctx: The context.
@@ -54,8 +54,13 @@ async def create_pdf_file_for_personal_id(
         Returns the download link for the document.
     """
     user_files_service = container.user_files_service()
-    download_link = await user_files_service.upload_file(user_email=ctx.deps.email)
-    return f"This is the download link for the personal id document: {download_link}"
+    personal_id = await user_files_service.create_user_document(ctx.deps.email)
+    attrs = user_files_service.get_missing(personal_id)
+    if len(attrs) == 0:
+        download_link = await user_files_service.upload_file(personal_id)
+        return f"This is the download link for the personal id document: {download_link}", True
+    else:
+        return f"Not enough information.", False
 
 @agent.tool
 async def get_service_info(

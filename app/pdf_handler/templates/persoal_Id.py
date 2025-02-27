@@ -1,10 +1,13 @@
 from datetime import datetime
 from typing import Optional
 
+from pydantic import EmailStr
+
 from app.databases.mongo_db import MongoEntry
 
 
 class PersonalID(MongoEntry):
+    email: EmailStr
     download_link: Optional[str] = None
     name: Optional[str] = None
     surname: Optional[str] = None

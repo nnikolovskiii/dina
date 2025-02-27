@@ -1,5 +1,7 @@
 import os
 import logging
+import uuid
+
 import requests
 from typing import Union, IO, Optional
 from pathlib import Path
@@ -33,47 +35,39 @@ class UserFilesService:
         load_dotenv()
         self.base_url = os.getenv("FILE_SYSTEM_URL")
 
-    async def create_user_document(self, user_email: EmailStr)->str:
+    async def create_user_document(self, user_email: EmailStr)->PersonalID:
         user_info = await self.user_service.get_user_info_decrypted(user_email)
 
-        personal_id_obj = PersonalID(
-            name=user_info.name,
-            surname=user_info.surname,
-            date_of_birth=user_info.date_of_birth,
-            gender=user_info.gender,
-            address=user_info.living_address,
-            mother_name=user_info.mother_name,
-            father_name=user_info.father_name,
-            eid=user_info.e_id,
-            personal_id=user_info.id_card_number
+        personal_id_obj = await self.mdb.get_entry_from_col_values(
+            columns={"email":user_email},
+            class_type=PersonalID,
         )
 
-        doc_id = await self.mdb.add_entry(personal_id_obj)
-        return doc_id
+        logging.info("Creating user document")
+
+        if personal_id_obj is None:
+            personal_id_obj = PersonalID(
+                email=user_email,
+                name=user_info.name,
+                surname=user_info.surname,
+                date_of_birth=user_info.date_of_birth,
+                gender=user_info.gender,
+                address=user_info.living_address,
+                mother_name=user_info.mother_name,
+                father_name=user_info.father_name,
+                eid=user_info.e_id,
+                personal_id=user_info.id_card_number
+            )
+
+            await self.mdb.add_entry(personal_id_obj)
+            return personal_id_obj
+        else:
+            return personal_id_obj
 
     async def upload_file(
             self,
-            user_email: EmailStr,
+            personal_id_obj: PersonalID,
     ) -> str:
-        logger.info(f"Fetching user information for email: {user_email}")
-        user_info = await self.user_service.get_user_info_decrypted(user_email)
-
-        logger.debug(f"User info retrieved: {user_info}")
-
-        personal_id_obj = PersonalID(
-            name=user_info.name,
-            surname=user_info.surname,
-            date_of_birth=user_info.date_of_birth,
-            gender=user_info.gender,
-            address=user_info.living_address,
-            mother_name=user_info.mother_name,
-            father_name=user_info.father_name,
-            eid=user_info.e_id,
-            personal_id=user_info.id_card_number
-        )
-
-        logger.debug(f"PersonalID object created: {personal_id_obj}")
-
         html_content = get_personal_id_template(personal_id_obj)
         pdf_buffer = BytesIO()
 
@@ -82,7 +76,8 @@ class UserFilesService:
             HTML(string=html_content).write_pdf(pdf_buffer)
             logger.info("PDF generation successful.")
 
-            filename = f"obrazec_licna_karta_{user_info.id}.pdf"
+            unique_id = uuid.uuid4().hex
+            filename = f"obrazec_licna_karta_{unique_id}.pdf"
             logger.info(f"Uploading PDF file: {filename}")
 
             upload_response = self.file_system_service.upload_file(
@@ -107,7 +102,11 @@ class UserFilesService:
             logger.debug("PDF buffer closed.")
 
     def get_missing(self, personal_id_obj: PersonalID):
+        logging.info(f"Missing fields: lol")
         missing_set = {field for field, value in personal_id_obj.model_dump().items() if value is None}
-        missing_set.remove("id")
-        missing_set.remove("download_link")
+        if "id" in missing_set:
+            missing_set.remove("id")
+        if "download_link" in missing_set:
+            missing_set.remove("download_link")
+        logging.info(f"Missing fields: {missing_set}")
         return missing_set
