@@ -38,6 +38,7 @@ async def websocket_endpoint(
         mdb: mdb_dep,
         current_user: User = Depends(get_current_user_websocket)
 ):
+    user_files_service = container.user_files_service()
     await websocket.accept()
     while True:
         try:
@@ -47,6 +48,19 @@ async def websocket_endpoint(
 
             if received_data.data_type == "chat":
                 await chat(mdb=mdb, current_user=current_user, received_data=received_data, websocket=websocket)
+            elif received_data.data_type == "form":
+                download_link = await user_files_service.upload_file(
+                        id=received_data.data[1],
+                        data=received_data.data[0]
+                )
+                print(download_link)
+                ws_data = WebsocketData(
+                        data=f"Ова е линкот до документот {download_link}.",
+                        data_type="no_stream",
+                    )
+                await asyncio.sleep(0.1)
+                await websocket.send_json(ws_data.model_dump())
+                await asyncio.sleep(0.1)
 
         except Exception as e:
             logging.error(f"Error: {e}")
@@ -127,7 +141,7 @@ async def chat(
                     if hasattr(part, "tool_name") and part.tool_name == "create_pdf_file_for_personal_id":
                         if not part.content[1]:
                             websocket_data = WebsocketData(
-                                data=f"{part.content[0]}",
+                                data=[part.content[2], part.content[3]],
                                 data_type="form",
                             )
                             await websocket.send_json(websocket_data.model_dump())

@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import logging
 import os
 from typing import List, Dict, Tuple
 
@@ -54,13 +55,14 @@ async def create_pdf_file_for_personal_id(
         Returns the download link for the document.
     """
     user_files_service = container.user_files_service()
+    logging.info("Inside tool for creating pdf file for personal id.")
     personal_id = await user_files_service.create_user_document(ctx.deps.email)
     attrs = user_files_service.get_missing(personal_id)
     if len(attrs) == 0:
-        download_link = await user_files_service.upload_file(personal_id)
-        return f"This is the download link for the personal id document: {download_link}", True
+        # download_link = await user_files_service.upload_file(personal_id)
+        return f"This is the download link for the personal id document: {personal_id.download_link}", True
     else:
-        return f"Not enough information.", False
+        return f"Not enough information.", False, attrs, personal_id.id
 
 @agent.tool
 async def get_service_info(

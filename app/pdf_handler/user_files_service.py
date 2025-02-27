@@ -1,12 +1,14 @@
+import enum
 import os
 import logging
 import uuid
 
 import requests
-from typing import Union, IO, Optional
+from typing import Union, IO, Optional, get_origin, get_args, AsyncGenerator
 from pathlib import Path
 import json
 
+from bson import ObjectId
 from dotenv import load_dotenv
 from weasyprint import HTML
 
@@ -51,7 +53,6 @@ class UserFilesService:
                 name=user_info.name,
                 surname=user_info.surname,
                 date_of_birth=user_info.date_of_birth,
-                gender=user_info.gender,
                 address=user_info.living_address,
                 mother_name=user_info.mother_name,
                 father_name=user_info.father_name,
@@ -59,15 +60,24 @@ class UserFilesService:
                 personal_id=user_info.id_card_number
             )
 
-            await self.mdb.add_entry(personal_id_obj)
+            obj_id = await self.mdb.add_entry(personal_id_obj)
+            personal_id_obj.id = obj_id
             return personal_id_obj
         else:
             return personal_id_obj
 
     async def upload_file(
             self,
-            personal_id_obj: PersonalID,
-    ) -> str:
+            id: str,
+            data: dict
+    ) -> str|None:  # Correct return type for async generator
+        personal_id_obj = await self.mdb.get_entry(ObjectId(id), PersonalID)
+        logging.info(personal_id_obj)
+        args = personal_id_obj.model_dump()
+        for key, value in data.items():
+            args[key] = value["value"]  # Fix typo: "key" -> key to update actual key
+
+        personal_id_obj = PersonalID(**args)
         html_content = get_personal_id_template(personal_id_obj)
         pdf_buffer = BytesIO()
 
@@ -88,25 +98,47 @@ class UserFilesService:
 
             logger.info(f"PDF successfully uploaded: {upload_response}")
 
-            download_link =  f"{self.base_url}/download/{filename}"
+            download_link = f"{self.base_url}/download/{filename}"
             personal_id_obj.download_link = download_link
             await self.mdb.update_entry(personal_id_obj)
 
-            return download_link
+            return download_link  # Yield the download link once
 
         except Exception as e:
             logger.error(f"Error processing PDF: {str(e)}", exc_info=True)
+            raise  # Consider re-raising or yielding an error message if needed
 
         finally:
             pdf_buffer.close()
             logger.debug("PDF buffer closed.")
 
     def get_missing(self, personal_id_obj: PersonalID):
-        logging.info(f"Missing fields: lol")
         missing_set = {field for field, value in personal_id_obj.model_dump().items() if value is None}
-        if "id" in missing_set:
-            missing_set.remove("id")
-        if "download_link" in missing_set:
-            missing_set.remove("download_link")
+        missing_set.discard("id")
+        missing_set.discard("download_link")
         logging.info(f"Missing fields: {missing_set}")
-        return missing_set
+
+        di = {}
+
+        for field in missing_set:
+            field_type = personal_id_obj.__class__.__annotations__.get(field, "Unknown")
+            enum_type = None
+
+            origin = get_origin(field_type)
+            if origin is Union:
+                args = get_args(field_type)
+                for arg in args:
+                    if isinstance(arg, type) and issubclass(arg, enum.Enum):
+                        enum_type = arg
+                        break
+            elif isinstance(field_type, type) and issubclass(field_type, enum.Enum):
+                enum_type = field_type
+
+            if enum_type is not None:
+                options = [e.value for e in enum_type]
+                # print(f"Field '{field}' is an Enum. Options: {options}")
+                di[field] = {"type": "dropdown", "value": "", "options": options}
+            else:
+                di[field] = {"type": "text", "value": "",}
+                # print(f"Field '{field}' is annotated as: {field_type}")
+        return di

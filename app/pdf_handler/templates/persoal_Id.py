@@ -3,6 +3,7 @@ from typing import Optional
 
 from pydantic import EmailStr
 
+from app.auth.models.user import GenderEnum
 from app.databases.mongo_db import MongoEntry
 
 
@@ -15,7 +16,7 @@ class PersonalID(MongoEntry):
     date_of_birth: Optional[datetime] = None
     place_of_birth: Optional[str] = None
     eid: Optional[str] = None
-    gender: Optional[str] = None
+    gender: Optional[GenderEnum] = None
     address: Optional[str] = None
     nationality: Optional[str] = None
     mother_name: Optional[str] = None
