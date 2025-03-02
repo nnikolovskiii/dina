@@ -14,7 +14,7 @@ from app.chat.models import Message, Chat
 from app.container import container
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
 from app.databases.singletons import get_mongo_db
-from app.dina.experiments.pudantic_ai_e import agent, get_system_messages
+from app.dina.agents.pudantic_agent import agent, get_system_messages
 from app.dina.models.service_procedure import ServiceProcedureDocument
 from app.llms.models import StreamChatLLM
 from app.models.flag import Flag

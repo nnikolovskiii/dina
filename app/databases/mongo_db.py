@@ -391,7 +391,16 @@ class MongoDBDatabase:
         Returns:
             List of model instances matching the criteria.
         """
-        doc_filter = {attribute_name: {"$in": values}}
+        # Convert string IDs to ObjectId if the attribute is '_id'
+        if attribute_name == "id":
+            attribute_name = "_id"
+
+        if attribute_name == '_id':
+            converted_values = [ObjectId(v) if isinstance(v, str) else v for v in values]
+        else:
+            converted_values = values
+
+        doc_filter = {attribute_name: {"$in": converted_values}}
         return await self.get_entries(class_type, doc_filter, collection_name)
 
     async def get_entries_dict_by_attribute_in_list(

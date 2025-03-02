@@ -12,6 +12,7 @@ from pydantic_ai.models.openai import OpenAIModel
 from app.auth.models.user import User
 from app.container import container
 from app.dina.models.service_procedure import ServiceProcedure, ServiceType
+from app.dina.pipelines.determine_service_type import determine_service_type
 from app.dina.pipelines.guard import GuardPipeline, GuardOutput
 from app.dina.pipelines.history_condenser import HistoryCondenser
 from app.dina.pipelines.info_retriever import InfoRetriever, ServiceIds
@@ -45,15 +46,19 @@ def add_the_users_name(ctx: RunContext[str]) -> str:
 @agent.tool
 async def create_pdf_file_for_personal_id(
         ctx: RunContext[str],
+        task: str
 ):
-    """Creates a pdf and automatically fills the information needed to make an application for receiving a personal id. Do this when explicitly told to.
+    """Creates a pdf and automatically fills the information needed to make an application for a service. Do this when explicitly told to.
 
     Args:
         ctx: The context.
-
+        task: The user task to determine the type of document.
     Returns:
         Returns the download link for the document.
     """
+
+    response = await determine_service_type(task=task)
+    print(response)
     user_files_service = container.user_files_service()
     logging.info("Inside tool for creating pdf file for personal id.")
     personal_id = await user_files_service.create_user_document(ctx.deps.email)

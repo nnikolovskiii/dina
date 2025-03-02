@@ -3,7 +3,7 @@ from typing import List, Dict, AsyncGenerator
 from bson import ObjectId
 
 from app.container import container
-from app.dina.experiments.final_response import FinalResponse
+from app.dina.agents.final_response import FinalResponse
 from app.dina.models.service_procedure import ServiceProcedure, ServiceType
 from app.dina.pipelines.about_dina import AboutDina
 from app.dina.pipelines.guard import GuardPipeline, GuardOutput
