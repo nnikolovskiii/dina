@@ -53,7 +53,6 @@ async def websocket_endpoint(
                         id=received_data.data[1],
                         data=received_data.data[0]
                 )
-                print(download_link)
                 ws_data = WebsocketData(
                         data=f"Ова е линкот до документот {download_link}.",
                         data_type="no_stream",

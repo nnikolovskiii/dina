@@ -35,8 +35,7 @@ class ChatService:
             doc_filter={"user_email": user_email},
             class_type=Chat
         )
-        print(user_email)
-        print(chats)
+
         chats = sorted(chats, key=lambda x: x.timestamp, reverse=True)
 
         categorized_chats = {
