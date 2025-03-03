@@ -3,10 +3,7 @@ import os
 import logging
 import uuid
 
-import requests
-from typing import Union, IO, Optional, get_origin, get_args, AsyncGenerator
-from pathlib import Path
-import json
+from typing import Union, get_origin, get_args, TypeVar, Type
 
 from bson import ObjectId
 from dotenv import load_dotenv
@@ -15,13 +12,18 @@ from weasyprint import HTML
 from app.auth.services.user import UserService
 from pydantic import EmailStr
 from app.databases.mongo_db import MongoDBDatabase
+from app.dina.models.service_procedure import ServiceProcedure
 from app.pdf_handler.file_system_service import FileSystemService
 from io import BytesIO
 
-from app.pdf_handler.templates.persoal_Id import get_personal_id_template, PersonalID
+from app.pdf_handler.templates.doc_template import UserDocument
+from app.pdf_handler.templates.driver_licnece import DriverLicence
+from app.pdf_handler.templates.persoal_Id import PersonalID
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+T = TypeVar('T', bound=UserDocument)
 
 
 class UserFilesService:
@@ -37,48 +39,61 @@ class UserFilesService:
         load_dotenv()
         self.base_url = os.getenv("FILE_SYSTEM_URL")
 
-    async def create_user_document(self, user_email: EmailStr)->PersonalID:
+    @staticmethod
+    def get_doc_class_type(service_type: str) -> Type[T] | None:
+        if service_type == "лична карта":
+            return PersonalID
+        elif service_type == "возачка":
+            return DriverLicence
+
+    async def create_user_document(self, user_email: EmailStr, service_procedure: ServiceProcedure) -> UserDocument:
         user_info = await self.user_service.get_user_info_decrypted(user_email)
 
-        personal_id_obj = await self.mdb.get_entry_from_col_values(
-            columns={"email":user_email},
-            class_type=PersonalID,
-        )
+        class_type = self.get_doc_class_type(service_procedure.service_type)
 
+        if class_type is None:
+            logging.error(f"There is no such class for the the type: {service_procedure.service_type}")
+
+        document_obj = await self.mdb.get_entry_from_col_values(
+            columns={"email": user_email},
+            class_type=class_type,
+        )
         logging.info("Creating user document")
 
-        if personal_id_obj is None:
-            personal_id_obj = PersonalID(
-                email=user_email,
-                name=user_info.name,
-                surname=user_info.surname,
-                date_of_birth=user_info.date_of_birth,
-                address=user_info.living_address,
-                mother_name=user_info.mother_name,
-                father_name=user_info.father_name,
-                eid=user_info.e_id,
-                personal_id=user_info.id_card_number
-            )
+        if document_obj is None:
+            args = {"email": user_email}
+            args.update(user_info.model_dump())
+            if "id" in args:
+                del args["id"]
 
-            obj_id = await self.mdb.add_entry(personal_id_obj)
-            personal_id_obj.id = obj_id
-            return personal_id_obj
+            document_obj = class_type(**args)
+
+            obj_id = await self.mdb.add_entry(document_obj)
+            document_obj.id = obj_id
+            return document_obj
         else:
-            return personal_id_obj
+            return document_obj
 
     async def upload_file(
             self,
             id: str,
+            service_type: str,
             data: dict
-    ) -> str|None:  # Correct return type for async generator
-        personal_id_obj = await self.mdb.get_entry(ObjectId(id), PersonalID)
-        logging.info(personal_id_obj)
-        args = personal_id_obj.model_dump()
-        for key, value in data.items():
-            args[key] = value["value"]  # Fix typo: "key" -> key to update actual key
+    ) -> str | None:
+        class_type = self.get_doc_class_type(service_type)
 
-        personal_id_obj = PersonalID(**args)
-        html_content = get_personal_id_template(personal_id_obj)
+        if class_type is None:
+            logging.error(f"There is no such class for the the type: {service_type}")
+
+        document_obj = await self.mdb.get_entry(ObjectId(id), class_type=class_type)
+        logging.info(document_obj)
+
+        args = document_obj.model_dump()
+        for key, value in data.items():
+            args[key] = value["value"]
+
+        document_obj = class_type(**args)
+        html_content = document_obj.get_template()
         pdf_buffer = BytesIO()
 
         try:
@@ -99,10 +114,10 @@ class UserFilesService:
             logger.info(f"PDF successfully uploaded: {upload_response}")
 
             download_link = f"{self.base_url}/download/{filename}"
-            personal_id_obj.download_link = download_link
-            await self.mdb.update_entry(personal_id_obj)
+            document_obj.download_link = download_link
+            await self.mdb.update_entry(document_obj)
 
-            return download_link  # Yield the download link once
+            return download_link
 
         except Exception as e:
             logger.error(f"Error processing PDF: {str(e)}", exc_info=True)
@@ -112,8 +127,8 @@ class UserFilesService:
             pdf_buffer.close()
             logger.debug("PDF buffer closed.")
 
-    def get_missing(self, personal_id_obj: PersonalID):
-        missing_set = {field for field, value in personal_id_obj.model_dump().items() if value is None}
+    def get_missing(self, document_obj: UserDocument):
+        missing_set = {field for field, value in document_obj.model_dump().items() if value is None}
         missing_set.discard("id")
         missing_set.discard("download_link")
         logging.info(f"Missing fields: {missing_set}")
@@ -121,7 +136,7 @@ class UserFilesService:
         di = {}
 
         for field in missing_set:
-            field_type = personal_id_obj.__class__.__annotations__.get(field, "Unknown")
+            field_type = document_obj.__class__.__annotations__.get(field, "Unknown")
             enum_type = None
 
             origin = get_origin(field_type)
@@ -136,9 +151,7 @@ class UserFilesService:
 
             if enum_type is not None:
                 options = [e.value for e in enum_type]
-                # print(f"Field '{field}' is an Enum. Options: {options}")
                 di[field] = {"type": "dropdown", "value": "", "options": options}
             else:
-                di[field] = {"type": "text", "value": "",}
-                # print(f"Field '{field}' is annotated as: {field_type}")
+                di[field] = {"type": "text", "value": "", }
         return di

@@ -4,7 +4,7 @@ import asyncio
 
 from bson import ObjectId
 from fastapi import WebSocket
-from pydantic_ai.messages import ModelRequest, SystemPromptPart, UserPromptPart, ModelResponse, TextPart
+from pydantic_ai.messages import ModelRequest, UserPromptPart, ModelResponse, TextPart
 
 from app.api.routes.auth import get_current_user_websocket
 from app.auth.models.user import User
@@ -14,10 +14,8 @@ from app.chat.models import Message, Chat
 from app.container import container
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
 from app.databases.singletons import get_mongo_db
-from app.dina.agents.pudantic_agent import agent, get_system_messages
+from app.dina.agents.pydantic_agent import agent, get_system_messages
 from app.dina.models.service_procedure import ServiceProcedureDocument
-from app.llms.models import StreamChatLLM
-from app.models.flag import Flag
 import json
 
 logging.basicConfig(level=logging.DEBUG)
@@ -50,13 +48,14 @@ async def websocket_endpoint(
                 await chat(mdb=mdb, current_user=current_user, received_data=received_data, websocket=websocket)
             elif received_data.data_type == "form":
                 download_link = await user_files_service.upload_file(
-                        id=received_data.data[1],
-                        data=received_data.data[0]
+                    id=received_data.data[1],
+                    service_type=received_data.data[2],
+                    data=received_data.data[0]
                 )
                 ws_data = WebsocketData(
-                        data=f"Ова е линкот до документот {download_link}.",
-                        data_type="no_stream",
-                    )
+                    data=f"Ова е линкот до документот {download_link}.",
+                    data_type="no_stream",
+                )
                 await asyncio.sleep(0.1)
                 await websocket.send_json(ws_data.model_dump())
                 await asyncio.sleep(0.1)
@@ -111,7 +110,7 @@ async def chat(
                     if hasattr(part, "tool_name") and part.tool_name == "get_service_info":
                         if len(part.content) == 2:
                             service_ids = part.content[1]
-                            objs:List[ServiceProcedureDocument] = await mdb.get_entries_by_attribute_in_list(
+                            objs: List[ServiceProcedureDocument] = await mdb.get_entries_by_attribute_in_list(
                                 class_type=ServiceProcedureDocument,
                                 attribute_name="procedure_id",
                                 values=service_ids,
@@ -122,15 +121,15 @@ async def chat(
                             <div class="pdf-links">
                             """
 
-                            for link,name in li.items():
-                                links+=f"""<div class="pdf-link">
+                            for link, name in li.items():
+                                links += f"""<div class="pdf-link">
                                     <div class="pdf-image"></div>
                                     <a href="{link}">{name}</a>
                                 </div>
                                 """
                             links += "</div>"
 
-                            response+=links
+                            response += links
                             websocket_data = WebsocketData(
                                 data=links,
                                 data_type="stream",
@@ -140,11 +139,10 @@ async def chat(
                     if hasattr(part, "tool_name") and part.tool_name == "create_pdf_file_for_personal_id":
                         if not part.content[1]:
                             websocket_data = WebsocketData(
-                                data=[part.content[2], part.content[3]],
+                                data=[part.content[2], part.content[3], part.content[4]],
                                 data_type="form",
                             )
                             await websocket.send_json(websocket_data.model_dump())
-
 
     websocket_data = WebsocketData(
         data=f"<ASTOR>:{chat_id}",

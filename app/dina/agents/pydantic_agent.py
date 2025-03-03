@@ -4,6 +4,7 @@ import logging
 import os
 from typing import List, Dict, Tuple
 
+from bson import ObjectId
 from dotenv import load_dotenv
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.messages import ModelRequest, SystemPromptPart, UserPromptPart, ModelResponse, TextPart
@@ -25,23 +26,32 @@ agent = Agent(
     'openai:gpt-4o',
     deps_type=User,
     retries=1,
-    system_prompt=["You are an AI assistant that handles performing tasks for administrative institutions in Macedonia.",
-                   "Your name is Dina",
-                   "Do not answer anything that is not Macedonian institution related."
-                   "Only answer in Macedonian."]
+    system_prompt=[
+        "You are an AI assistant that handles performing tasks for administrative institutions in Macedonia.",
+        "Your name is Dina",
+        "Do not answer anything that is not Macedonian institution related."
+        "Only answer in Macedonian."]
 )
 
 agent.api_key = api_key
-def get_system_messages()->ModelRequest:
+
+
+def get_system_messages() -> ModelRequest:
     return ModelRequest(
-        parts=[SystemPromptPart(content='You are an AI assistant that handles performing tasks for administrative institutions in Macedonia.', part_kind='system-prompt'),
+        parts=[SystemPromptPart(
+            content='You are an AI assistant that handles performing tasks for administrative institutions in Macedonia.',
+            part_kind='system-prompt'),
                SystemPromptPart(content='Your name is Dina', part_kind='system-prompt'),
-               SystemPromptPart(content='Do not answer anything that is not Macedonian institution related.Only answer in Macedonian.', part_kind='system-prompt'),
+               SystemPromptPart(
+                   content='Do not answer anything that is not Macedonian institution related.Only answer in Macedonian.',
+                   part_kind='system-prompt'),
                SystemPromptPart(content="The user's name is Nikola Nikolovski.", part_kind='system-prompt')])
+
 
 @agent.system_prompt
 def add_the_users_name(ctx: RunContext[str]) -> str:
     return f"The user's name is {ctx.deps.full_name}."
+
 
 @agent.tool
 async def create_pdf_file_for_personal_id(
@@ -56,18 +66,20 @@ async def create_pdf_file_for_personal_id(
     Returns:
         Returns the download link for the document.
     """
-
-    response = await determine_service_type(task=task)
-    print(response)
-    user_files_service = container.user_files_service()
     logging.info("Inside tool for creating pdf file for personal id.")
-    personal_id = await user_files_service.create_user_document(ctx.deps.email)
-    attrs = user_files_service.get_missing(personal_id)
+
+    mdb = container.mdb()
+    user_files_service = container.user_files_service()
+
+    service_type_response = await determine_service_type(task=task)
+    service_procedure = await mdb.get_entry(id=ObjectId(service_type_response.service_id), class_type=ServiceProcedure)
+    document = await user_files_service.create_user_document(ctx.deps.email, service_procedure)
+    attrs = user_files_service.get_missing(document)
     if len(attrs) == 0:
-        # download_link = await user_files_service.upload_file(personal_id)
-        return f"This is the download link for the personal id document: {personal_id.download_link}", True
+        return f"This is the download link for the personal id document: {document.download_link}", True
     else:
-        return f"Not enough information.", False, attrs, personal_id.id
+        return f"Not enough information.", False, attrs, document.id, service_procedure.service_type
+
 
 @agent.tool
 async def get_service_info(
@@ -92,7 +104,8 @@ async def get_service_info(
     history_summary = ""
 
     guard_pipeline = GuardPipeline(chat_llm=small_model)
-    guard_output: GuardOutput = await guard_pipeline.execute(task=question, history=history_summary, class_type=GuardOutput)
+    guard_output: GuardOutput = await guard_pipeline.execute(task=question, history=history_summary,
+                                                             class_type=GuardOutput)
 
     if guard_output.relevant:
         available_services = await mdb.get_entries(ServiceProcedure)
@@ -127,10 +140,7 @@ async def get_service_info(
         service_info += "Service Types:\n"
         service_info += "\n".join([str(elem) for elem in service_type_objects])
 
-
         return service_info, selected_services.service_ids
 
     else:
         return "Оваа задача не е релевантна за административните институции во Македонија. Доколку ви треба помош со информации или постапки поврзани со институции во Македонија, слободно прашајте!", []
-
-
