@@ -187,7 +187,7 @@ class ChatService:
             user_message: str,
             user_email: str,
     ) -> str:
-        chat_llm = await self.get_model(model_name="gpt-4o-mini", class_type=ChatLLM)
+        chat_llm = await self.get_model(model_name="gpt-4o", class_type=ChatLLM)
         chat_name_pipeline = ChatTitlePipeline(chat_llm=chat_llm)
         response = await chat_name_pipeline.execute(message=user_message)
 

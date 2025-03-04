@@ -7,7 +7,10 @@ class ChatTitlePipeline(ChatPipeline):
         return "dict"
 
     def template(self, message: str) -> str:
-        return f"""Given the below user question your job is to create a name/title for the whole chat. Write the title with maximum 3 words. Make it encompass the key concepts of the question.
+        return f"""Given the below user question your job is to create a name/title for the whole chat. Make it encompass the key concepts of the question. 
+        
+Write it strictly in Macedonian with cyrillic alphabet.
+
 Question: {message}
 
 Return in json format: {{"title": "..."}}"""

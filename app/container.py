@@ -9,6 +9,7 @@ from app.chat.service import ChatService
 from app.databases.mongo_db import MongoDBDatabase
 from app.llms.llm_factory import LLMFactory
 from app.pdf_handler.file_system_service import FileSystemService
+from app.pdf_handler.form_service import FormService
 from app.pdf_handler.user_files_service import UserFilesService
 from app.telegram.telegram_bot import TelegramBot
 
@@ -59,6 +60,12 @@ class Container(containers.DeclarativeContainer):
         UserFilesService,
         mdb=mdb,
         file_system_service=file_system_service,
+        user_service=user_service,
+    )
+
+    form_service = providers.Factory(
+        FormService,
+        mdb=mdb,
         user_service=user_service,
     )
 

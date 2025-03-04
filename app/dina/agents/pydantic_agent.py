@@ -52,6 +52,17 @@ def get_system_messages() -> ModelRequest:
 def add_the_users_name(ctx: RunContext[str]) -> str:
     return f"The user's name is {ctx.deps.full_name}."
 
+@agent.tool
+async def start_payment_process(
+        ctx: RunContext[str],
+):
+    """When the user asks for paying something it starts the payment process.
+
+    Args:
+        ctx: The context.
+    Returns:
+        Returns the download link for the document.
+    """
 
 @agent.tool
 async def create_pdf_file_for_personal_id(
@@ -70,11 +81,18 @@ async def create_pdf_file_for_personal_id(
 
     mdb = container.mdb()
     user_files_service = container.user_files_service()
+    form_service = container.form_service()
 
     service_type_response = await determine_service_type(task=task)
     service_procedure = await mdb.get_entry(id=ObjectId(service_type_response.service_id), class_type=ServiceProcedure)
-    document = await user_files_service.create_user_document(ctx.deps.email, service_procedure)
-    attrs = user_files_service.get_missing(document)
+
+    class_type = user_files_service.get_doc_class_type(service_procedure.service_type)
+    document, attrs = await form_service.create_init_obj(
+        user_email=ctx.deps.email,
+        class_type=class_type,
+        exclude_args=["download_link"]
+    )
+
     if len(attrs) == 0:
         return f"This is the download link for the personal id document: {document.download_link}", True
     else:

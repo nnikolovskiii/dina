@@ -144,6 +144,13 @@ async def chat(
                             )
                             await websocket.send_json(websocket_data.model_dump())
 
+                    if hasattr(part, "tool_name") and part.tool_name == "start_payment_process":
+                        websocket_data = WebsocketData(
+                            data=["lol", "lol", "lol"],
+                            data_type="payment",
+                        )
+                        await websocket.send_json(websocket_data.model_dump())
+
     websocket_data = WebsocketData(
         data=f"<ASTOR>:{chat_id}",
         data_type="stream",

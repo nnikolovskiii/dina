@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 import enum
 
@@ -34,10 +34,10 @@ class IssuanceProcedure(str, enum.Enum):
 
 # TODO: There are other missing information!!!
 class DriverLicence(UserDocument):
-    # reason_for_submission: Optional[Set[SubmissionReason]] = None
+    reason_for_submission: Optional[List[SubmissionReason]] = None
     # name: Optional[str] = None
     # surname: Optional[str] = None
-    # other_languages: Optional[Set[OtherLanguages]] = None
+    other_languages: Optional[List[OtherLanguages]] = None
     e_id: Optional[str] = None
     date_of_birth: Optional[datetime] = None
     issuance_procedure: Optional[IssuanceProcedure] = None
