@@ -1,5 +1,3 @@
-import asyncio
-import datetime
 import logging
 import os
 from typing import List, Dict, Tuple
@@ -7,15 +5,13 @@ from typing import List, Dict, Tuple
 from bson import ObjectId
 from dotenv import load_dotenv
 from pydantic_ai import Agent, RunContext
-from pydantic_ai.messages import ModelRequest, SystemPromptPart, UserPromptPart, ModelResponse, TextPart
-from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.messages import ModelRequest, SystemPromptPart
 
 from app.auth.models.user import User
 from app.container import container
 from app.dina.models.service_procedure import ServiceProcedure, ServiceType
 from app.dina.pipelines.determine_service_type import determine_service_type
 from app.dina.pipelines.guard import GuardPipeline, GuardOutput
-from app.dina.pipelines.history_condenser import HistoryCondenser
 from app.dina.pipelines.info_retriever import InfoRetriever, ServiceIds
 from app.llms.models import ChatLLM
 
@@ -36,7 +32,8 @@ agent = Agent(
 agent.api_key = api_key
 
 
-def get_system_messages() -> ModelRequest:
+# TODO: Need to change this to be defined once, not two times.
+def get_system_messages(user: User) -> ModelRequest:
     return ModelRequest(
         parts=[SystemPromptPart(
             content='You are an AI assistant that handles performing tasks for administrative institutions in Macedonia.',
@@ -45,7 +42,7 @@ def get_system_messages() -> ModelRequest:
                SystemPromptPart(
                    content='Do not answer anything that is not Macedonian institution related.Only answer in Macedonian.',
                    part_kind='system-prompt'),
-               SystemPromptPart(content="The user's name is Nikola Nikolovski.", part_kind='system-prompt')])
+               SystemPromptPart(content=f"The user's name is {user.full_name}.", part_kind='system-prompt')])
 
 
 @agent.system_prompt

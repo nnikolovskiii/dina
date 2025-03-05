@@ -76,7 +76,7 @@ async def chat(
     message, chat_id = received_data.data
 
     history = await chat_service.get_history_from_chat(chat_id=chat_id)
-    message_history = convert_history(history)
+    message_history = convert_history(history, current_user)
 
     if chat_id is None:
         chat_id = await chat_service.save_user_chat(user_message=message, user_email=current_user.email)
@@ -169,7 +169,7 @@ async def chat(
     await mdb.update_entry(chat_obj)
 
 
-def convert_history(history):
+def convert_history(history, user: User):
     if history is None or len(history) == 0:
         return None
 

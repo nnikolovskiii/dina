@@ -1,5 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager
+
+import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 import logging
@@ -66,5 +68,10 @@ app.include_router(pdf_handler.router, prefix="/pdf", tags=["pdf"])
 
 
 
-# if __name__ == "__main__":
-#     uvicorn.run(app, host="0.0.0.0", port=8000)
+if __name__ == "__main__":
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=5000,
+        reload=False
+    )
