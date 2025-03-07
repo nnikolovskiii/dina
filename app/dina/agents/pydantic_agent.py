@@ -1,14 +1,15 @@
 import logging
 import os
-from typing import List, Dict, Tuple
+from typing import List, Tuple
 
 from bson import ObjectId
 from dotenv import load_dotenv
-from pydantic_ai import Agent, RunContext
+from pydantic_ai import RunContext
 from pydantic_ai.messages import ModelRequest, SystemPromptPart
 
 from app.auth.models.user import User
 from app.container import container
+from app.dina.feedback_agent.pydantic_agent import Agent
 from app.dina.models.service_procedure import ServiceProcedure, ServiceType
 from app.dina.pipelines.determine_service_type import determine_service_type
 from app.dina.pipelines.guard import GuardPipeline, GuardOutput
