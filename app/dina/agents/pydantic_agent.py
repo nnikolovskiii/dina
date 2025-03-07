@@ -92,7 +92,7 @@ async def create_pdf_file_for_personal_id(
     )
 
     if len(attrs) == 0:
-        return f"This is the download link for the personal id document: {document.download_link}", True
+        return document.download_link, True, service_procedure.service_type
     else:
         return f"Not enough information.", False, attrs, document.id, service_procedure.service_type
 

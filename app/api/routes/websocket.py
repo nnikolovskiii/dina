@@ -1,5 +1,5 @@
 import datetime
-from typing import Annotated, Any, List, Tuple, Iterable
+from typing import Annotated, Any, List, Tuple, Iterable, Dict
 
 from bson import ObjectId
 from fastapi import WebSocket
@@ -77,10 +77,13 @@ async def websocket_endpoint(
                         data=form_data[0]
                     )
 
-                    response += f"Ова е линкот до документот {download_link}."
+                    di = {download_link: form_data[2]}
+                    response += f"Ова е линкот до вашиот документ: "
+                    link = _get_link_template(di)
+                    response += link
 
                     await _send_single_stream_message(
-                        single_message=f"Ова е линкот до документот {download_link}.",
+                        single_message=response,
                         websocket=websocket,
                         chat_id=chat_id,
                         message_type="stream"
@@ -154,8 +157,13 @@ async def chat(
                     )
                     await websocket.send_json(websocket_data.model_dump())
                 else:
+                    response += "Ова е линкот до вашиот документ: "
+                    di = {part.content[0]: part.content[2]}
+                    link = _get_link_template(di)
+                    response += link
+
                     await _send_single_stream_message(
-                        single_message=part.content[0],
+                        single_message=response,
                         websocket=websocket,
                         chat_id=chat_id,
                         message_type="stream"
@@ -187,11 +195,14 @@ async def _get_service_links(mdb:MongoDBDatabase, tool_part: ToolReturnPart)->st
     )
     li = {elem.link: elem.name for elem in objs}
 
+    return _get_link_template(li)
+
+def _get_link_template(di: Dict[str, str]):
     links = """
                     <div class="pdf-links">
                     """
 
-    for link, name in li.items():
+    for link, name in di.items():
         links += f"""<div class="pdf-link">
                             <div class="pdf-image"></div>
                             <a href="{link}">{name}</a>
