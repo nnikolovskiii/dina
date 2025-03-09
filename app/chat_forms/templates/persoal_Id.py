@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 
 from app.auth.models.user import GenderEnum
-from app.pdf_handler.templates.doc_template import UserDocument
+from app.chat_forms.templates.doc_template import UserDocument
 
 
 class PersonalID(UserDocument):

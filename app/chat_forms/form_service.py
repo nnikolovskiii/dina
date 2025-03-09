@@ -3,11 +3,13 @@ import logging
 
 from typing import Union, get_origin, get_args, TypeVar, Type, List, Optional, Tuple
 
+from bson import ObjectId
+
 from app.auth.services.user import UserService
 from pydantic import EmailStr
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
-from app.pdf_handler.templates.driver_licnece import DriverLicence
-from app.pdf_handler.templates.persoal_Id import PersonalID
+from app.chat_forms.templates.driver_licnece import DriverLicence
+from app.chat_forms.templates.persoal_Id import PersonalID
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -58,6 +60,23 @@ class FormService:
             obj.id = obj_id
 
         return obj, self.get_missing(obj, exclude_args)
+
+
+    async def update_obj(
+            self,
+            id: str,
+            data: dict,
+            class_type: Type[T],
+    ) -> str | None:
+        obj = await self.mdb.get_entry(ObjectId(id), class_type=class_type)
+        logging.info(obj)
+
+        args = obj.model_dump()
+        for key, value in data.items():
+            args[key] = value["value"]
+
+        new_obj = class_type(**args)
+        await self.mdb.update_entry(new_obj)
 
     def get_missing(self, obj: T, exclude_args: Optional[List[str]] = None) -> dict:
         missing = {f for f, v in obj.model_dump().items() if v is None} - {'id'}

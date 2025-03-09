@@ -11,12 +11,15 @@ from app.auth.models.user import User
 import logging
 
 from app.chat.models import Message, Chat
+from app.chat_forms.models.payment_details import PaymentDetails
 from app.container import container
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
 from app.databases.singletons import get_mongo_db
 from app.dina.agents.pydantic_agent import agent, get_system_messages
 from app.dina.models.service_procedure import ServiceProcedureDocument
 import json
+
+from app.chat_forms.models.appointment import Appointment
 
 logging.basicConfig(level=logging.DEBUG)
 from fastapi import APIRouter, Depends
@@ -42,6 +45,7 @@ async def websocket_endpoint(
         current_user: User = Depends(get_current_user_websocket)
 ):
     user_files_service = container.user_files_service()
+    form_service = container.form_service()
     await websocket.accept()
     while True:
         try:
@@ -71,23 +75,86 @@ async def websocket_endpoint(
                                           message_history=message_history, chat_id=chat_id)
                 elif received_data.data_type == "form":
                     form_data = received_data.data[0]
-                    download_link = await user_files_service.upload_file(
-                        id=form_data[1],
-                        service_type=form_data[2],
-                        data=form_data[0]
-                    )
+                    form_order = form_data[-1]
+                    if form_order == 0:
+                        download_link = await user_files_service.upload_file(
+                            id=form_data[1],
+                            service_type=form_data[2],
+                            data=form_data[0]
+                        )
 
-                    di = {download_link: form_data[2]}
-                    response += f"Ова е линкот до вашиот документ: "
-                    link = _get_link_template(di)
-                    response += link
+                        di = {download_link: form_data[2]}
+                        response += f"Ова е линкот до вашиот документ: "
+                        link = _get_link_template(di)
+                        response += link
+                        response += "\n\n"
+                        response += "Ве молам изберете кој термин сакате да го закажете:\n"
 
-                    await _send_single_stream_message(
-                        single_message=response,
-                        websocket=websocket,
-                        chat_id=chat_id,
-                        message_type="stream"
-                    )
+                        await _send_single_stream_message(
+                            single_message=response,
+                            websocket=websocket,
+                            chat_id=chat_id,
+                            message_type="stream"
+                        )
+
+                        appointment, attrs = await form_service.create_init_obj(
+                            user_email=current_user.email,
+                            class_type=Appointment,
+                            exclude_args=["download_link"]
+                        )
+                        # TODO: This should not be hardcoded
+                        attrs['appointment'] = {
+                            "type": "dropdown",
+                            "value": "",
+                            "options": ["08:00 часот, 10.03.2025 (Понеделник)", "09:00 часот, 10.03.2025 (Понеделник)",
+                                        "10:00 часот, 10.03.2025 (Понеделник)",
+                                        "08:00 часот, 11.03.2025 (Вторник)", "15:00 часот, 11.03.2025 (Вторник)",
+                                        "15:00 часот, 12.03.2025 (Среда)"]
+                        }
+
+                        websocket_data = WebsocketData(
+                            data=[1, attrs, appointment.id],
+                            data_type="form",
+                        )
+
+                        await websocket.send_json(websocket_data.model_dump())
+
+                    elif form_order == 1:
+                        logging.info("Processing appoitment")
+                        # TODO: add payment
+                        await form_service.update_obj(
+                            id=form_data[1],
+                            class_type=Appointment,
+                            data=form_data[0]
+                        )
+
+                        # creating payment obj
+                        payment_details, attrs = await form_service.create_init_obj(
+                            user_email=current_user.email,
+                            class_type=PaymentDetails,
+                        )
+
+                        websocket_data = WebsocketData(
+                            data=[2, attrs, payment_details.id],
+                            data_type="form",
+                        )
+
+                        await websocket.send_json(websocket_data.model_dump())
+
+                    elif form_order == 2:
+                        await form_service.update_obj(
+                            id=form_data[1],
+                            class_type=PaymentDetails,
+                            data=form_data[0]
+                        )
+
+                        await _send_single_stream_message(
+                            single_message="✅ Плаќањет е успешно. Вашето барање е успешно поденесено.",
+                            websocket=websocket,
+                            chat_id=chat_id,
+                            message_type="no_stream"
+                        )
+
 
                 if response != "":
                     # save assistant message
@@ -117,7 +184,7 @@ async def chat(
     response = ""
     async with agent.run_stream(message, deps=current_user,
                                 message_history=message_history) as result:
-        if isinstance(result, Iterable)  and len(result) == 2 and isinstance(result[0], StreamedRunResult):
+        if isinstance(result, Iterable) and len(result) == 2 and isinstance(result[0], StreamedRunResult):
             stream_result, tools_used = result
             async for message in stream_result.stream_text(delta=True):
                 response += message
@@ -152,7 +219,7 @@ async def chat(
                     )
 
                     websocket_data = WebsocketData(
-                        data=[part.content[2], part.content[3], part.content[4]],
+                        data=[0, part.content[2], part.content[3], part.content[4]],
                         data_type="form",
                     )
                     await websocket.send_json(websocket_data.model_dump())
@@ -186,7 +253,7 @@ async def chat(
     return response
 
 
-async def _get_service_links(mdb:MongoDBDatabase, tool_part: ToolReturnPart)->str:
+async def _get_service_links(mdb: MongoDBDatabase, tool_part: ToolReturnPart) -> str:
     service_ids = tool_part.content[1]
     objs: List[ServiceProcedureDocument] = await mdb.get_entries_by_attribute_in_list(
         class_type=ServiceProcedureDocument,
@@ -196,6 +263,7 @@ async def _get_service_links(mdb:MongoDBDatabase, tool_part: ToolReturnPart)->st
     li = {elem.link: elem.name for elem in objs}
 
     return _get_link_template(li)
+
 
 def _get_link_template(di: Dict[str, str]):
     links = """

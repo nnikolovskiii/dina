@@ -9,7 +9,7 @@ from app.api.routes import code, chat, websocket, test, collection_data, code_fi
     pdf_handler
 from app.container import container
 from app.databases.singletons import get_mongo_db, get_qdrant_db
-from app.pdf_handler.templates.persoal_Id import PersonalID
+from app.chat_forms.templates.persoal_Id import PersonalID
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('pymongo').setLevel(logging.WARNING)

@@ -13,12 +13,12 @@ from app.auth.services.user import UserService
 from pydantic import EmailStr
 from app.databases.mongo_db import MongoDBDatabase
 from app.dina.models.service_procedure import ServiceProcedure
-from app.pdf_handler.file_system_service import FileSystemService
+from app.chat_forms.file_system_service import FileSystemService
 from io import BytesIO
 
-from app.pdf_handler.templates.doc_template import UserDocument
-from app.pdf_handler.templates.driver_licnece import DriverLicence
-from app.pdf_handler.templates.persoal_Id import PersonalID
+from app.chat_forms.templates.doc_template import UserDocument
+from app.chat_forms.templates.driver_licnece import DriverLicence
+from app.chat_forms.templates.persoal_Id import PersonalID
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -80,6 +80,7 @@ class UserFilesService:
             service_type: str,
             data: dict
     ) -> str | None:
+        # TODO: Perform this with the formsService
         class_type = self.get_doc_class_type(service_type)
 
         if class_type is None:

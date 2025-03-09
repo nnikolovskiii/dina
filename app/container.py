@@ -8,9 +8,9 @@ from app.auth.services.user import UserService
 from app.chat.service import ChatService
 from app.databases.mongo_db import MongoDBDatabase
 from app.llms.llm_factory import LLMFactory
-from app.pdf_handler.file_system_service import FileSystemService
-from app.pdf_handler.form_service import FormService
-from app.pdf_handler.user_files_service import UserFilesService
+from app.chat_forms.file_system_service import FileSystemService
+from app.chat_forms.form_service import FormService
+from app.chat_forms.user_files_service import UserFilesService
 from app.telegram.telegram_bot import TelegramBot
 
 
