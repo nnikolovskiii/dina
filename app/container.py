@@ -11,6 +11,7 @@ from app.llms.llm_factory import LLMFactory
 from app.chat_forms.file_system_service import FileSystemService
 from app.chat_forms.form_service import FormService
 from app.chat_forms.user_files_service import UserFilesService
+from app.mail.service import EmailService
 from app.telegram.telegram_bot import TelegramBot
 
 
@@ -67,6 +68,10 @@ class Container(containers.DeclarativeContainer):
         FormService,
         mdb=mdb,
         user_service=user_service,
+    )
+
+    email_service = providers.Factory(
+        EmailService
     )
 
 

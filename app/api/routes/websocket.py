@@ -46,6 +46,8 @@ async def websocket_endpoint(
 ):
     user_files_service = container.user_files_service()
     form_service = container.form_service()
+    email_service = container.email_service()
+
     await websocket.accept()
     while True:
         try:
@@ -155,6 +157,11 @@ async def websocket_endpoint(
                             message_type="no_stream"
                         )
 
+                        await email_service.send_email(
+                            recipient_email=current_user.email,
+                            subject="Успешно поднесено барање",
+                            body="Успешно поднесено барање"
+                        )
 
                 if response != "":
                     # save assistant message
