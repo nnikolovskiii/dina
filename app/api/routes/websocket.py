@@ -134,6 +134,7 @@ async def websocket_endpoint(
                         payment_details, attrs = await form_service.create_init_obj(
                             user_email=current_user.email,
                             class_type=PaymentDetails,
+                            always_new=True
                         )
 
                         websocket_data = WebsocketData(

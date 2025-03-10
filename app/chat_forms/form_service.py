@@ -36,6 +36,7 @@ class FormService:
             self,
             user_email: EmailStr,
             class_type: Type[T],
+            always_new: bool = False,
             exclude_args: Optional[List[str]] = None
     ) -> Tuple[T, dict]:
         # TODO: We will leave the user_info for now.
@@ -48,7 +49,7 @@ class FormService:
 
         logging.info(f"Creating object of type {str(class_type)}")
 
-        if obj is None:
+        if obj is None or always_new:
             args = {"email": user_email}
             args.update(user_info.model_dump())
             if "id" in args:
