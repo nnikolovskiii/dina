@@ -50,24 +50,22 @@ def get_system_messages(user: User) -> ModelRequest:
 def add_the_users_name(ctx: RunContext[str]) -> str:
     return f"The user's name is {ctx.deps.full_name}."
 
-@agent.tool
-async def start_payment_process(
-        ctx: RunContext[str],
-):
-    """When the user asks for paying something it starts the payment process.
-
-    Args:
-        ctx: The context.
-    Returns:
-        Returns the download link for the document.
-    """
 
 @agent.tool
-async def create_pdf_file_for_personal_id(
+async def initiate_service_application_workflow(
         ctx: RunContext[str],
         task: str
 ):
-    """Creates a pdf and automatically fills the information needed to make an application for a service. Do this when explicitly told to.
+    """The function facilitates a multi-step service application process that guides users through three sequential phases:
+
+    Document Generation
+    Automatically prepares and provides the required application form (PDF) based on the requested service type (e.g., national ID). Returns a download link for the user.
+
+    Appointment Scheduling
+    After document submission, offers available time slots for in-person visits. Users select their preferred appointment from dynamic dropdown options.
+
+    Payment Finalization
+    Processes payment details after appointment confirmation, then sends email confirmation and marks the application as complete.
 
     Args:
         ctx: The context.

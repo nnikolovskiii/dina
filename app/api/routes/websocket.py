@@ -216,7 +216,7 @@ async def chat(
             await _finalize_message(chat_id, websocket)
         elif isinstance(result, ToolReturnPart):
             part = result
-            if hasattr(part, "tool_name") and part.tool_name == "create_pdf_file_for_personal_id":
+            if hasattr(part, "tool_name") and part.tool_name == "initiate_service_application_workflow":
                 if not part.content[1]:
                     await _send_single_stream_message(
                         single_message='Ве молам пополнете ги податоците што недостигаат за создавање на документот:',
@@ -242,20 +242,6 @@ async def chat(
                         chat_id=chat_id,
                         message_type="stream"
                     )
-
-            if hasattr(part, "tool_name") and part.tool_name == "start_payment_process":
-                await _send_single_stream_message(
-                    single_message='Ве молам пополнете ги податоците на вашата платежна картичка:',
-                    websocket=websocket,
-                    chat_id=chat_id,
-                    message_type="stream"
-                )
-
-                websocket_data = WebsocketData(
-                    data=["lol", "lol", "lol"],
-                    data_type="payment",
-                )
-                await websocket.send_json(websocket_data.model_dump())
 
     return response
 
