@@ -1,4 +1,3 @@
-import asyncio
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -6,13 +5,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 import logging
 from app.api.routes import code, chat, websocket, test, collection_data, code_files, docs, links, process, flag, auth, \
-    pdf_handler
-from app.container import container
+    pdf_handler, appointment
 from app.databases.singletons import get_mongo_db, get_qdrant_db
-from app.chat_forms.templates.persoal_Id import PersonalID
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('pymongo').setLevel(logging.WARNING)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -29,6 +27,7 @@ async def lifespan(app: FastAPI):
     mdb.client.close()
     qdb = await get_qdrant_db()
     await qdb.client.close()
+
 
 app = FastAPI(lifespan=lifespan)
 
@@ -50,7 +49,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # routes
 app.include_router(code.router, prefix="/code", tags=["code"])
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
@@ -64,9 +62,7 @@ app.include_router(process.router, prefix="/process", tags=["process"])
 app.include_router(flag.router, prefix="/flag", tags=["flag"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(pdf_handler.router, prefix="/pdf", tags=["pdf"])
-
-
-
+app.include_router(appointment.router, prefix="/appointment", tags=["appointment"])
 
 if __name__ == "__main__":
     uvicorn.run(

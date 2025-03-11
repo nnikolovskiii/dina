@@ -4,6 +4,7 @@ from typing import Optional
 from pydantic import EmailStr
 
 from app.databases.mongo_db import MongoEntry
+from app.models.registry import CollectionRegistry
 
 
 class Message(MongoEntry):
@@ -12,7 +13,7 @@ class Message(MongoEntry):
     order: int
     chat_id: str
 
-
+@CollectionRegistry("Chat")
 class Chat(MongoEntry):
     user_email: Optional[str] = None
     title: str

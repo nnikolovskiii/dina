@@ -5,10 +5,12 @@ from copy import deepcopy
 from bson import ObjectId
 from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorClient
-from typing import Optional, Any, List, Dict, TypeVar, Set, AsyncGenerator
+from typing import Optional, Any, List, Dict, TypeVar, Set, AsyncGenerator, Tuple
 from typing import Type as TypingType
 from dotenv import load_dotenv
 from pymongo.errors import DuplicateKeyError, ConnectionFailure
+
+from app.models.registry import COLLECTION_REGISTRY
 
 
 class MongoEntry(BaseModel):
@@ -422,4 +424,91 @@ class MongoDBDatabase:
         """
         doc_filter = {attribute_name: {"$in": values}}
         return await self.get_entries_dict(collection_name, doc_filter)
+
+    async def get_paginated_entries(
+            self,
+            *,
+            class_type: Optional[TypingType[T]] = None,
+            collection_name: Optional[str] = None,
+            page: int,
+            page_size: int,
+            doc_filter: Optional[dict] = None,
+            sort: Optional[list[tuple[str, int]]] = None,
+    ) -> tuple[list[T], int]:
+        # Validate input
+        if not (class_type or collection_name):
+            raise ValueError("Provide either `class_type` or `collection_name`.")
+        if class_type and collection_name:
+            raise ValueError("Provide only one of `class_type` or `collection_name`.")
+
+        # Derive class_type or collection_name
+        if collection_name:
+            class_type = COLLECTION_REGISTRY.get(collection_name)
+            if not class_type:
+                raise ValueError(f"Collection '{collection_name}' not registered.")
+        else:
+            collection_name = getattr(class_type, "__collection__", None)
+            if not collection_name:
+                raise ValueError("Class has no registered collection name.")
+
+        # Rest of the method remains unchanged
+        if page < 1 or page_size < 1:
+            raise ValueError("Page and page_size must be ≥ 1.")
+
+        collection = self.db[collection_name]
+        skip = (page - 1) * page_size
+
+        query = collection.find(doc_filter or {})
+        if sort:
+            query = query.sort(sort)
+        cursor = query.skip(skip).limit(page_size)
+
+        items = [class_type.model_validate(doc) async for doc in cursor]
+        total = await collection.count_documents(doc_filter or {})
+
+        return items, total
+
+    async def get_paginated_entries_dict(
+            self,
+            collection_name: str,
+            page: int,
+            page_size: int,
+            doc_filter: Optional[Dict[str, Any]] = None,
+            sort: Optional[List[Tuple[str, int]]] = None,
+    ) -> Tuple[List[Dict[str, Any]], int]:
+        """
+        Retrieve a paginated page of dictionary entries along with the total count.
+
+        Args:
+            collection_name: Name of the collection.
+            page: The 1-based page number.
+            page_size: Number of items per page.
+            doc_filter: Optional filter dictionary.
+            sort: Optional list of (field, direction) tuples for sorting.
+
+        Returns:
+            A tuple containing the list of items and the total count.
+        """
+        if page < 1:
+            raise ValueError("page must be greater than 0")
+        if page_size < 1:
+            raise ValueError("page_size must be greater than 0")
+
+        collection = self.db[collection_name]
+
+        skip = (page - 1) * page_size
+
+        query = collection.find(doc_filter or {})
+        if sort is not None:
+            query = query.sort(sort)
+        query = query.skip(skip).limit(page_size)
+
+        items = []
+        async for doc in query:
+            doc['id'] = str(doc.pop('_id'))
+            items.append(doc)
+
+        total = await collection.count_documents(doc_filter or {})
+
+        return items, total
 
