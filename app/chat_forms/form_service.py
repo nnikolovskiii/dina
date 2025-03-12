@@ -1,7 +1,7 @@
 import enum
 import logging
 
-from typing import Union, get_origin, get_args, TypeVar, Type, List, Optional, Tuple
+from typing import Union, get_origin, get_args, TypeVar, Type, List, Optional, Tuple, Dict
 
 from bson import ObjectId
 
@@ -37,7 +37,8 @@ class FormService:
             user_email: EmailStr,
             class_type: Type[T],
             always_new: bool = False,
-            exclude_args: Optional[List[str]] = None
+            exclude_args: Optional[List[str]] = None,
+            attrs: Dict[str, any] = None
     ) -> Tuple[T, dict]:
         # TODO: We will leave the user_info for now.
         user_info = await self.user_service.get_user_info_decrypted(user_email)
@@ -52,6 +53,8 @@ class FormService:
         if obj is None or always_new:
             args = {"email": user_email}
             args.update(user_info.model_dump())
+            if attrs is not None:
+                args.update(attrs)
             if "id" in args:
                 del args["id"]
 

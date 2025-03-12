@@ -11,3 +11,8 @@ from app.models.registry import CollectionRegistry
 class Appointment(MongoEntry):
     email: Optional[EmailStr] = None
     appointment: Optional[str] = None
+    title: Optional[str] = None
+    #TODO: Make this not hardcoded
+    location: Optional[str] = "Полициска станица Центар"
+    date: Optional[str] = None
+    time: Optional[str] = None

@@ -78,10 +78,11 @@ async def websocket_endpoint(
                 elif received_data.data_type == "form":
                     form_data = received_data.data[0]
                     form_order = form_data[-1]
+                    service_type = form_data[2]
                     if form_order == 0:
                         download_link = await user_files_service.upload_file(
                             id=form_data[1],
-                            service_type=form_data[2],
+                            service_type=service_type,
                             data=form_data[0]
                         )
 
@@ -102,16 +103,17 @@ async def websocket_endpoint(
                         appointment, attrs = await form_service.create_init_obj(
                             user_email=current_user.email,
                             class_type=Appointment,
-                            exclude_args=["download_link"]
+                            exclude_args=["download_link", "title", "date", "time"],
+                            attrs={"title": f"Термин за {service_type}"}
                         )
                         # TODO: This should not be hardcoded
                         attrs['appointment'] = {
                             "type": "dropdown",
                             "value": "",
-                            "options": ["08:00 часот, 10.03.2025 (Понеделник)", "09:00 часот, 10.03.2025 (Понеделник)",
-                                        "10:00 часот, 10.03.2025 (Понеделник)",
-                                        "08:00 часот, 11.03.2025 (Вторник)", "15:00 часот, 11.03.2025 (Вторник)",
-                                        "15:00 часот, 12.03.2025 (Среда)"]
+                            "options": ["08:00 часот, 10.03.2025", "09:00 часот, 10.03.2025",
+                                        "10:00 часот, 10.03.2025",
+                                        "08:00 часот, 11.03.2025", "15:00 часот, 11.03.2025",
+                                        "15:00 часот, 12.03.2025"]
                         }
 
                         websocket_data = WebsocketData(
@@ -123,11 +125,21 @@ async def websocket_endpoint(
 
                     elif form_order == 1:
                         logging.info("Processing appoitment")
-                        # TODO: add payment
+                        data = form_data[0]
+                        date_str = data["appointment"]["value"]
+                        li = date_str.split(",")
+                        li = [elem.strip() for elem in li]
+
+                        data["date"] = {}
+                        data["time"] = {}
+                        data["date"]["value"] = li[1]
+                        data["time"]["value"] = li[0]
+
+
                         await form_service.update_obj(
                             id=form_data[1],
                             class_type=Appointment,
-                            data=form_data[0]
+                            data=data
                         )
 
                         # creating payment obj
@@ -157,6 +169,13 @@ async def websocket_endpoint(
                             chat_id=chat_id,
                             message_type="no_stream"
                         )
+
+                        websocket_data = WebsocketData(
+                            data=[3],
+                            data_type="form",
+                        )
+
+                        await websocket.send_json(websocket_data.model_dump())
 
                         await email_service.send_email(
                             recipient_email=current_user.email,
@@ -232,17 +251,25 @@ async def chat(
                     )
                     await websocket.send_json(websocket_data.model_dump())
                 else:
-                    response += "Ова е линкот до вашиот документ: "
+                    # TODO: Change this
+                    response += "Веќе имате закажано термин. Ова е линкот до вашиот документ: "
                     di = {part.content[0]: part.content[2]}
                     link = _get_link_template(di)
                     response += link
 
                     await _send_single_stream_message(
-                        single_message=response,
+                        single_message=response + "\n\n" + "Подолу ќе ви ги прикажам сите ваши закажани термини:",
                         websocket=websocket,
                         chat_id=chat_id,
-                        message_type="stream"
+                        message_type="no_stream"
                     )
+
+                    websocket_data = WebsocketData(
+                        data=[3],
+                        data_type="form",
+                    )
+
+                    await websocket.send_json(websocket_data.model_dump())
 
     return response
 
