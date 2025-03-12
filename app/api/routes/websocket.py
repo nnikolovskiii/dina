@@ -281,6 +281,22 @@ async def chat(
 
                     await websocket.send_json(websocket_data.model_dump())
 
+            #list_all_appointments
+            elif hasattr(part, "tool_name") and part.tool_name == "list_all_appointments":
+                await _send_single_stream_message(
+                    single_message="Подоле ви се прикажани сите закажани термини:",
+                    websocket=websocket,
+                    chat_id=chat_id,
+                    message_type="no_stream"
+                )
+
+                websocket_data = WebsocketData(
+                    data=[3],
+                    data_type="form",
+                )
+
+                await websocket.send_json(websocket_data.model_dump())
+
     return response
 
 

@@ -50,6 +50,18 @@ def get_system_messages(user: User) -> ModelRequest:
 def add_the_users_name(ctx: RunContext[str]) -> str:
     return f"The user's name is {ctx.deps.full_name}."
 
+@agent.tool
+async def list_all_appointments(
+        ctx: RunContext[str],
+        task: str
+):
+    """Lists all user appointments when the user needs them. List them all if a user doesn't know an appointment for a certain service.
+
+    :param ctx:
+    :param task:
+    :return:
+    """
+
 
 @agent.tool
 async def initiate_service_application_workflow(

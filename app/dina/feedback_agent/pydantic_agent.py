@@ -462,7 +462,7 @@ class Agent(Generic[AgentDeps, ResultData]):
                                 should_exit = False
 
                                 for tool_response in tool_responses:
-                                    if tool_response.tool_name == "initiate_service_application_workflow":
+                                    if tool_response.tool_name == "initiate_service_application_workflow" or tool_response.tool_name == "list_all_appointments":
                                         yield tool_response
                                         should_exit = True
                                         break
