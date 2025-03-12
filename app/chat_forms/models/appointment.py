@@ -16,3 +16,4 @@ class Appointment(MongoEntry):
     location: Optional[str] = "Полициска станица Центар"
     date: Optional[str] = None
     time: Optional[str] = None
+    service_type: Optional[str] = None

@@ -38,13 +38,19 @@ class FormService:
             class_type: Type[T],
             always_new: bool = False,
             exclude_args: Optional[List[str]] = None,
-            attrs: Dict[str, any] = None
+            attrs: Dict[str, any] = None,
+            other_existing_cols_vals: Dict[str, any] = None,
     ) -> Tuple[T, dict]:
         # TODO: We will leave the user_info for now.
         user_info = await self.user_service.get_user_info_decrypted(user_email)
 
+        if other_existing_cols_vals is None:
+            other_existing_cols_vals = {}
+
+        other_existing_cols_vals.update({"email": user_email})
+
         obj = await self.mdb.get_entry_from_col_values(
-            columns={"email": user_email},
+            columns=other_existing_cols_vals,
             class_type=class_type,
         )
 

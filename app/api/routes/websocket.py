@@ -1,6 +1,7 @@
 import datetime
 from typing import Annotated, Any, List, Tuple, Iterable, Dict
 
+import pymongo
 from bson import ObjectId
 from fastapi import WebSocket
 from pydantic_ai.messages import ModelRequest, UserPromptPart, ModelResponse, TextPart, ToolReturnPart
@@ -103,8 +104,9 @@ async def websocket_endpoint(
                         appointment, attrs = await form_service.create_init_obj(
                             user_email=current_user.email,
                             class_type=Appointment,
-                            exclude_args=["download_link", "title", "date", "time"],
-                            attrs={"title": f"Термин за {service_type}"}
+                            exclude_args=["download_link", "title", "date", "time", "service_type"],
+                            attrs={"title": f"Термин за {service_type}", "service_type": service_type},
+                            other_existing_cols_vals={"service_type": service_type}
                         )
                         # TODO: This should not be hardcoded
                         attrs['appointment'] = {
@@ -195,8 +197,16 @@ async def websocket_endpoint(
                     chat_obj.num_messages += 1
                     await mdb.update_entry(chat_obj)
 
+        except pymongo.errors.DuplicateKeyError as e:
+            await websocket.send_json({"error": "Appointment slot already taken"})
+            break
+        except pymongo.errors.PyMongoError as e:
+            logging.error(f"Database error: {e}")
+            await websocket.send_json({"error": "Database operation failed"})
+            break
         except Exception as e:
-            logging.error(f"Error: {e}")
+            logging.error(f"Unexpected error: {e}")
+            await websocket.send_json({"error": "Internal server error"})
             break
 
 

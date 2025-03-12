@@ -11,6 +11,8 @@ from weasyprint import HTML
 
 from app.auth.services.user import UserService
 from pydantic import EmailStr
+
+from app.chat_forms.templates.passport import Passport
 from app.databases.mongo_db import MongoDBDatabase
 from app.dina.models.service_procedure import ServiceProcedure
 from app.chat_forms.file_system_service import FileSystemService
@@ -45,6 +47,8 @@ class UserFilesService:
             return PersonalID
         elif service_type == "возачка":
             return DriverLicence
+        elif service_type == "пасош":
+            return Passport
 
     async def create_user_document(self, user_email: EmailStr, service_procedure: ServiceProcedure) -> UserDocument:
         user_info = await self.user_service.get_user_info_decrypted(user_email)
