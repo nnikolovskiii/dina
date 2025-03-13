@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from typing import List, Tuple
@@ -12,7 +13,6 @@ from app.container import container
 from app.dina.feedback_agent.pydantic_agent import Agent
 from app.dina.models.service_procedure import ServiceProcedure, ServiceType
 from app.dina.pipelines.determine_service_type import determine_service_type
-from app.dina.pipelines.guard import GuardPipeline, GuardOutput
 from app.dina.pipelines.info_retriever import InfoRetriever, ServiceIds
 from app.llms.models import ChatLLM
 
@@ -122,51 +122,47 @@ async def get_service_info(
     mdb = container.mdb()
 
     chat_model = await chat_service.get_model(model_name="gpt-4o", class_type=ChatLLM)
-    small_model = await chat_service.get_model(model_name="gpt-4o-mini", class_type=ChatLLM)
+    # small_model = await chat_service.get_model(model_name="gpt-4o-mini", class_type=ChatLLM)
     picker_pipeline = InfoRetriever(chat_llm=chat_model)
 
     # history_pipeline = HistoryCondenser(chat_llm=small_model)
     # history_summary = await history_pipeline.execute(conversation=history)
-    history_summary = ""
+    # history_summary = ""
 
-    guard_pipeline = GuardPipeline(chat_llm=small_model)
-    guard_output: GuardOutput = await guard_pipeline.execute(task=question, history=history_summary,
-                                                             class_type=GuardOutput)
+    # guard_pipeline = GuardPipeline(chat_llm=small_model)
+    # guard_output: GuardOutput = await guard_pipeline.execute(task=question, history=history_summary,
+    #                                                          class_type=GuardOutput)
+    # if guard_output.relevant:
 
-    if guard_output.relevant:
-        available_services = await mdb.get_entries(ServiceProcedure)
-        available_types = await mdb.get_entries(ServiceType)
+    available_services, available_types = await asyncio.gather(
+        mdb.get_entries(ServiceProcedure),
+        mdb.get_entries(ServiceType)
+    )
 
-        services_dict = {elem.id: elem for elem in available_services}
-        types_dict = {elem.name: elem for elem in available_types}
+    services_dict = {elem.id: elem for elem in available_services}
+    types_dict = {elem.name: elem for elem in available_types}
 
-        selected_services: ServiceIds = await picker_pipeline.execute(
-            question=question,
-            conversation=history_summary,
-            services=available_services,
-            service_types=available_types,
-            class_type=ServiceIds
-        )
+    selected_services: ServiceIds = await picker_pipeline.execute(
+        question=question,
+        conversation="",
+        services=available_services,
+        service_types=available_types,
+        class_type=ServiceIds
+    )
 
-        matched_services = []
-        matched_types = set()
+    matched_services = [services_dict[sid] for sid in selected_services.service_ids]
+    matched_types = {s.service_type for s in matched_services}
 
-        for service_id in selected_services.service_ids:
-            service = services_dict[service_id]
-            matched_services.append(service)
-            matched_types.add(service.service_type)
+    service_type_objects = [types_dict[t] for t in matched_types]
 
-        service_type_objects = [
-            types_dict[type_name]
-            for type_name in matched_types
-        ]
+    output_parts = [
+        "Service Procedures:",
+        *map(str, matched_services),
+        "Service Types:",
+        *map(str, service_type_objects)
+    ]
 
-        service_info = "Service Procedures:\n"
-        service_info += "\n".join([str(elem) for elem in matched_services])
-        service_info += "Service Types:\n"
-        service_info += "\n".join([str(elem) for elem in service_type_objects])
+    return "\n".join(output_parts), selected_services.service_ids
 
-        return service_info, selected_services.service_ids
-
-    else:
-        return "Оваа задача не е релевантна за административните институции во Македонија. Доколку ви треба помош со информации или постапки поврзани со институции во Македонија, слободно прашајте!", []
+    # else:
+    #     return "Оваа задача не е релевантна за административните институции во Македонија. Доколку ви треба помош со информации или постапки поврзани со институции во Македонија, слободно прашајте!", []
