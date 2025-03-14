@@ -200,6 +200,7 @@ async def add_service():
         )
     )
 
+
     await mdb.add_entry(
         ServiceProcedure(
             name="Вадење на извод од матична книга на родени за полнолетен граѓанин",

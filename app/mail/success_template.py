@@ -1,4 +1,7 @@
-def get_success_template():
+from typing import Optional
+
+
+def get_success_template(download_link: Optional[str] = None):
     return f"""
         <html>
             <body style="margin: 0; padding: 20px; background: #f3f4f6; font-family: Arial, sans-serif;">
@@ -37,7 +40,6 @@ def get_success_template():
                             <!--<![endif]-->
                         </div>
 
-                        <!-- Rest of the content remains the same -->
                         <div style="text-align: center;">
                             <h1 style="color: #066e29; font-size: 18px; margin: 0 0 12px 0;">Успешно закажување на термин!</h1>
                             <p style="color: #595b5f; font-size: 14px; line-height: 1.5; margin: 0 0 24px 0;">Вашиот термин е успешно закажан на 23.03.2024 во 14 часот.</p>
@@ -46,6 +48,7 @@ def get_success_template():
                         <div style="margin: 0 20px 20px;">
                             <a href="#" style="display: block; padding: 12px; background: #1aa06d; color: #ffffff; text-decoration: none; border-radius: 6px; margin-bottom: 12px; text-align: center; font-weight: bold;">Покажи термини</a>
                             <a href="#" style="display: block; padding: 12px; border: 1px solid #D1D5DB; color: #242525; text-decoration: none; border-radius: 6px; text-align: center; font-weight: bold;">Зборувај со Дина</a>
+                            {f'<a href="{download_link}" style="display: block; padding: 12px; background: #1aa06d; color: #ffffff; text-decoration: none; border-radius: 6px; margin-bottom: 12px; text-align: center; font-weight: bold;">Превземи документ</a>' if download_link else ''}
                         </div>
                     </div>
                 </div>

@@ -1,4 +1,6 @@
 import os
+from typing import Optional
+
 import aiosmtplib
 from email.mime.text import MIMEText
 from dotenv import load_dotenv
@@ -13,12 +15,12 @@ class EmailService:
         self.sender_email = os.getenv("NO_REPLY_MAIL")
         self.sender_password = os.getenv("NO_REPLY_MAIL_PASSWORD")
 
-    async def send_email(self, recipient_email, subject, body):
+    async def send_email(self, recipient_email, subject, body, download_link: Optional[str] = None):
         """
         Send a styled HTML email asynchronously using SSL on port 465.
         """
         # Example HTML content; replace with your actual template
-        html_content = get_success_template()
+        html_content = get_success_template(download_link)
         msg = MIMEText(html_content, 'html')
         msg['Subject'] = subject
         msg['From'] = self.sender_email

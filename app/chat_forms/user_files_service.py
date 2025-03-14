@@ -3,7 +3,7 @@ import os
 import logging
 import uuid
 
-from typing import Union, get_origin, get_args, TypeVar, Type
+from typing import Union, get_origin, get_args, TypeVar, Type, Optional
 
 from bson import ObjectId
 from dotenv import load_dotenv
@@ -12,6 +12,7 @@ from weasyprint import HTML
 from app.auth.services.user import UserService
 from pydantic import EmailStr
 
+from app.chat_forms.templates.birth_certificate import BirthCertificate
 from app.chat_forms.templates.passport import Passport
 from app.databases.mongo_db import MongoDBDatabase
 from app.dina.models.service_procedure import ServiceProcedure
@@ -42,7 +43,10 @@ class UserFilesService:
         self.base_url = os.getenv("FILE_SYSTEM_URL")
 
     @staticmethod
-    def get_doc_class_type(service_type: str) -> Type[T] | None:
+    def get_doc_class_type(service_type: str, service_name: Optional[str] = None) -> Type[T] | None:
+        if service_name:
+            if service_name == "Вадење на извод од матична книга на родени за полнолетен граѓанин":
+                return BirthCertificate
         if service_type == "лична карта":
             return PersonalID
         elif service_type == "возачка":
@@ -82,10 +86,11 @@ class UserFilesService:
             self,
             id: str,
             service_type: str,
-            data: dict
+            data: dict,
+            service_name: Optional[str] = None,
     ) -> str | None:
         # TODO: Perform this with the formsService
-        class_type = self.get_doc_class_type(service_type)
+        class_type = self.get_doc_class_type(service_type, service_name)
 
         if class_type is None:
             logging.error(f"There is no such class for the the type: {service_type}")

@@ -39,16 +39,17 @@ def get_system_messages(user: User) -> ModelRequest:
         parts=[SystemPromptPart(
             content='You are an AI assistant that handles performing tasks for administrative institutions in Macedonia.',
             part_kind='system-prompt'),
-               SystemPromptPart(content='Your name is Dina', part_kind='system-prompt'),
-               SystemPromptPart(
-                   content='Do not answer anything that is not Macedonian institution related.Only answer in Macedonian.',
-                   part_kind='system-prompt'),
-               SystemPromptPart(content=f"The user's name is {user.full_name}.", part_kind='system-prompt')])
+            SystemPromptPart(content='Your name is Dina', part_kind='system-prompt'),
+            SystemPromptPart(
+                content='Do not answer anything that is not Macedonian institution related.Only answer in Macedonian.',
+                part_kind='system-prompt'),
+            SystemPromptPart(content=f"The user's name is {user.full_name}.", part_kind='system-prompt')])
 
 
 @agent.system_prompt
 def add_the_users_name(ctx: RunContext[str]) -> str:
     return f"The user's name is {ctx.deps.full_name}."
+
 
 @agent.tool
 async def list_all_appointments(
@@ -94,7 +95,15 @@ async def initiate_service_application_workflow(
     service_type_response = await determine_service_type(task=task)
     service_procedure = await mdb.get_entry(id=ObjectId(service_type_response.service_id), class_type=ServiceProcedure)
 
-    class_type = user_files_service.get_doc_class_type(service_procedure.service_type)
+    class_type = user_files_service.get_doc_class_type(
+        service_type=service_procedure.service_type,
+        service_name=service_procedure.name
+    )
+
+    # TODO: Better handling of flags
+    if class_type is None:
+        return f"Се уште не го подржуваме побараниот сервис: {service_procedure.name}", "no_service"
+
     document, attrs = await form_service.create_init_obj(
         user_email=ctx.deps.email,
         class_type=class_type,
@@ -102,9 +111,10 @@ async def initiate_service_application_workflow(
     )
 
     if len(attrs) == 0:
-        return document.download_link, True, service_procedure.service_type
+        return document.download_link, "info", service_procedure.service_type
     else:
-        return f"Not enough information.", False, attrs, document.id, service_procedure.service_type
+        # TODO: Make these outputs as objects
+        return f"Not enough information.", "no_info", attrs, document.id, service_procedure.service_type, service_procedure.name
 
 
 @agent.tool

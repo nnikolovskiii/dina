@@ -34,6 +34,8 @@ router = APIRouter()
 mdb_dep = Annotated[MongoDBDatabase, Depends(get_mongo_db)]
 
 
+no_appointment_services = {"Вадење на извод од матична книга на родени за полнолетен граѓанин"}
+
 class WebsocketData(MongoEntry):
     data_type: str
     data: Any
@@ -80,11 +82,13 @@ async def websocket_endpoint(
                     form_data = received_data.data[0]
                     form_order = form_data[-1]
                     service_type = form_data[2]
+                    service_name = form_data[3]
                     if form_order == 0:
                         download_link = await user_files_service.upload_file(
                             id=form_data[1],
                             service_type=service_type,
-                            data=form_data[0]
+                            data=form_data[0],
+                            service_name=service_name
                         )
 
                         di = {download_link: form_data[2]}
@@ -101,29 +105,45 @@ async def websocket_endpoint(
                             message_type="stream"
                         )
 
-                        appointment, attrs = await form_service.create_init_obj(
-                            user_email=current_user.email,
-                            class_type=Appointment,
-                            exclude_args=["download_link", "title", "date", "time", "service_type"],
-                            attrs={"title": f"Термин за {service_type}", "service_type": service_type},
-                            other_existing_cols_vals={"service_type": service_type}
-                        )
-                        # TODO: This should not be hardcoded
-                        attrs['appointment'] = {
-                            "type": "dropdown",
-                            "value": "",
-                            "options": ["08:00 часот, 10.03.2025", "09:00 часот, 10.03.2025",
-                                        "10:00 часот, 10.03.2025",
-                                        "08:00 часот, 11.03.2025", "15:00 часот, 11.03.2025",
-                                        "15:00 часот, 12.03.2025"]
-                        }
+                        if service_name in no_appointment_services:
+                            # creating payment obj
+                            payment_details, attrs = await form_service.create_init_obj(
+                                user_email=current_user.email,
+                                class_type=PaymentDetails,
+                                always_new=True
+                            )
+                            # TODO: Add this to a same function
+                            websocket_data = WebsocketData(
+                                data=[2, attrs, payment_details.id],
+                                data_type="form",
+                            )
 
-                        websocket_data = WebsocketData(
-                            data=[1, attrs, appointment.id],
-                            data_type="form",
-                        )
+                            await websocket.send_json(websocket_data.model_dump())
+                        else:
+                            appointment, attrs = await form_service.create_init_obj(
+                                user_email=current_user.email,
+                                class_type=Appointment,
+                                exclude_args=["download_link", "title", "date", "time", "service_type"],
+                                attrs={"title": f"Термин за {service_type}", "service_type": service_type},
+                                other_existing_cols_vals={"service_type": service_type}
+                            )
 
-                        await websocket.send_json(websocket_data.model_dump())
+                            # TODO: This should not be hardcoded
+                            attrs['appointment'] = {
+                                "type": "dropdown",
+                                "value": "",
+                                "options": ["08:00 часот, 10.03.2025", "09:00 часот, 10.03.2025",
+                                            "10:00 часот, 10.03.2025",
+                                            "08:00 часот, 11.03.2025", "15:00 часот, 11.03.2025",
+                                            "15:00 часот, 12.03.2025"]
+                            }
+
+                            websocket_data = WebsocketData(
+                                data=[1, attrs, appointment.id],
+                                data_type="form",
+                            )
+
+                            await websocket.send_json(websocket_data.model_dump())
 
                     elif form_order == 1:
                         logging.info("Processing appoitment")
@@ -136,7 +156,6 @@ async def websocket_endpoint(
                         data["time"] = {}
                         data["date"]["value"] = li[1]
                         data["time"]["value"] = li[0]
-
 
                         await form_service.update_obj(
                             id=form_data[1],
@@ -172,17 +191,21 @@ async def websocket_endpoint(
                             message_type="no_stream"
                         )
 
-                        websocket_data = WebsocketData(
-                            data=[3],
-                            data_type="form",
-                        )
+                        if service_name in no_appointment_services:
+                            pass
+                        else:
+                            websocket_data = WebsocketData(
+                                data=[3],
+                                data_type="form",
+                            )
 
-                        await websocket.send_json(websocket_data.model_dump())
+                            await websocket.send_json(websocket_data.model_dump())
 
                         await email_service.send_email(
                             recipient_email=current_user.email,
                             subject="Успешно поднесено барање",
-                            body="Успешно поднесено барање"
+                            body="Успешно поднесено барање",
+                            download_link=download_link
                         )
 
                 if response != "":
@@ -247,7 +270,8 @@ async def chat(
         elif isinstance(result, ToolReturnPart):
             part = result
             if hasattr(part, "tool_name") and part.tool_name == "initiate_service_application_workflow":
-                if not part.content[1]:
+                flag = part.content[1]
+                if flag == "no_info":
                     await _send_single_stream_message(
                         single_message='Ве молам пополнете ги податоците што недостигаат за создавање на документот:',
                         websocket=websocket,
@@ -256,11 +280,11 @@ async def chat(
                     )
 
                     websocket_data = WebsocketData(
-                        data=[0, part.content[2], part.content[3], part.content[4]],
+                        data=[0, part.content[2], part.content[3], part.content[4], part.content[5]],
                         data_type="form",
                     )
                     await websocket.send_json(websocket_data.model_dump())
-                else:
+                elif flag == "info":
                     # TODO: Change this
                     response += "Веќе имате закажано термин. Ова е линкот до вашиот документ: "
                     di = {part.content[0]: part.content[2]}
@@ -281,7 +305,16 @@ async def chat(
 
                     await websocket.send_json(websocket_data.model_dump())
 
-            #list_all_appointments
+                elif flag == "no_service":
+                    await _send_single_stream_message(
+                        single_message=part.content[0],
+                        websocket=websocket,
+                        chat_id=chat_id,
+                        message_type="no_stream"
+                    )
+
+
+            # list_all_appointments
             elif hasattr(part, "tool_name") and part.tool_name == "list_all_appointments":
                 await _send_single_stream_message(
                     single_message="Подоле ви се прикажани сите закажани термини:",
