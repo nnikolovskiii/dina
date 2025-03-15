@@ -98,7 +98,7 @@ async def websocket_endpoint(
                         response += "\n\n"
                         response += "Ве молам изберете кој термин сакате да го закажете:\n"
 
-                        await _send_websocket_message(
+                        await _send_websocket_data(
                             data=WebsocketData(
                                 data_type="stream",
                                 data=response,
@@ -115,7 +115,7 @@ async def websocket_endpoint(
                                 always_new=True
                             )
                             # TODO: Add this to a same function
-                            await _send_websocket_message(
+                            await _send_websocket_data(
                                 data=WebsocketData(
                                     data=[attrs, payment_details.id],
                                     data_type="form",
@@ -143,7 +143,7 @@ async def websocket_endpoint(
                                             "15:00 часот, 12.03.2025"]
                             }
 
-                            await _send_websocket_message(
+                            await _send_websocket_data(
                                 data=WebsocketData(
                                     data=[attrs, appointment.id, service_type, service_name],
                                     data_type="form",
@@ -178,7 +178,7 @@ async def websocket_endpoint(
                             always_new=True
                         )
 
-                        await _send_websocket_message(
+                        await _send_websocket_data(
                             data=WebsocketData(
                                 data=[attrs, payment_details.id],
                                 data_type="form",
@@ -197,7 +197,7 @@ async def websocket_endpoint(
                             data=form_data[0]
                         )
 
-                        await _send_websocket_message(
+                        await _send_websocket_data(
                             data=WebsocketData(
                                 data="✅ Плаќањет е успешно. Вашето барање е успешно поденесено.",
                                 data_type="no_stream",
@@ -209,7 +209,7 @@ async def websocket_endpoint(
                         if service_name in no_appointment_services:
                             pass
                         else:
-                            await _send_websocket_message(
+                            await _send_websocket_data(
                                 data=WebsocketData(
                                     data=None,
                                     data_type="form",
@@ -266,7 +266,7 @@ async def chat(
             async for message in stream_result.stream_text(delta=True):
                 response += message
 
-                await _send_websocket_message(
+                await _send_websocket_data(
                     data=WebsocketData(
                         data=message,
                         data_type="stream",
@@ -279,7 +279,7 @@ async def chat(
             if "get_service_info" in tools_used:
                 links = await _get_service_links(mdb=mdb, tool_part=tools_used["get_service_info"])
 
-                await _send_websocket_message(
+                await _send_websocket_data(
                     data=WebsocketData(
                         data=links,
                         data_type="stream",
@@ -290,13 +290,13 @@ async def chat(
 
                 response += links
 
-            await _finalize_message(chat_id, websocket)
+            await _send_chat_id(chat_id, websocket)
         elif isinstance(result, ToolReturnPart):
             part = result
             if hasattr(part, "tool_name") and part.tool_name == "initiate_service_application_workflow":
                 flag = part.content[1]
                 if flag == "no_info":
-                    await _send_websocket_message(
+                    await _send_websocket_data(
                         data=WebsocketData(
                             data='Ве молам пополнете ги податоците што недостигаат за создавање на документот:',
                             data_type="stream",
@@ -305,7 +305,7 @@ async def chat(
                         chat_id=chat_id,
                     )
 
-                    await _send_websocket_message(
+                    await _send_websocket_data(
                         data=WebsocketData(
                             data=[part.content[2], part.content[3], part.content[4], part.content[5]],
                             data_type="form",
@@ -322,7 +322,7 @@ async def chat(
                     link = _get_link_template(di)
                     response += link
 
-                    await _send_websocket_message(
+                    await _send_websocket_data(
                         data=WebsocketData(
                             data=response + "\n\n" + "Подолу ќе ви ги прикажам сите ваши закажани термини:",
                             data_type="no_stream"
@@ -331,7 +331,7 @@ async def chat(
                         chat_id=chat_id,
                     )
 
-                    await _send_websocket_message(
+                    await _send_websocket_data(
                         data=WebsocketData(
                             data=None,
                             data_type="form",
@@ -343,7 +343,7 @@ async def chat(
 
 
                 elif flag == "no_service":
-                    await _send_websocket_message(
+                    await _send_websocket_data(
                         data=WebsocketData(
                             data=part.content[0],
                             data_type="no_stream"
@@ -356,7 +356,7 @@ async def chat(
             # list_all_appointments
             elif hasattr(part, "tool_name") and part.tool_name == "list_all_appointments":
 
-                await _send_websocket_message(
+                await _send_websocket_data(
                     data=WebsocketData(
                         data="Подоле ви се прикажани сите закажани термини:",
                         data_type="no_stream",
@@ -365,7 +365,7 @@ async def chat(
                     chat_id=chat_id,
                 )
 
-                await _send_websocket_message(
+                await _send_websocket_data(
                     data=WebsocketData(
                         data=None,
                         data_type="form",
@@ -406,7 +406,7 @@ def _get_link_template(di: Dict[str, str]):
     return links
 
 
-async def _finalize_message(chat_id: str, websocket: WebSocket):
+async def _send_chat_id(chat_id: str, websocket: WebSocket):
     websocket_data = WebsocketData(
         data=f"<ASTOR>:{chat_id}",
         data_type="stream",
@@ -415,7 +415,7 @@ async def _finalize_message(chat_id: str, websocket: WebSocket):
     await asyncio.sleep(0)
 
 
-async def _send_websocket_message(
+async def _send_websocket_data(
         data: WebsocketData,
         websocket: WebSocket,
         chat_id: str
@@ -424,7 +424,7 @@ async def _send_websocket_message(
     await asyncio.sleep(0)
 
     if data.data_type == "stream":
-        await _finalize_message(chat_id, websocket)
+        await _send_chat_id(chat_id, websocket)
 
 
 async def _get_chat_id_and_message(received_data: WebsocketData, current_user: User) -> Tuple[str, any]:
