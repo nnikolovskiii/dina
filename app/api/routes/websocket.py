@@ -1,5 +1,5 @@
 import datetime
-from typing import Annotated, Any, List, Tuple, Iterable, Dict
+from typing import Annotated, Any, List, Tuple, Iterable, Dict, Optional
 
 import pymongo
 from bson import ObjectId
@@ -39,6 +39,7 @@ no_appointment_services = {"Вадење на извод од матична к�
 class WebsocketData(MongoEntry):
     data_type: str
     data: Any
+    step: Optional[int] = 0
 
 
 @router.websocket("/")
@@ -62,13 +63,11 @@ async def websocket_endpoint(
             message_history = await _get_history(chat_id, current_user)
 
             async with chat_locks[chat_id]:
-                # get chat obj
                 chat_obj = await mdb.get_entry(ObjectId(chat_id), Chat)
 
                 response = ""
 
                 if received_data.data_type == "chat":
-                    # saving the user question/task
                     await mdb.add_entry(Message(
                         role="user",
                         content=message,
@@ -78,12 +77,13 @@ async def websocket_endpoint(
 
                     response = await chat(mdb=mdb, current_user=current_user, websocket=websocket, message=message,
                                           message_history=message_history, chat_id=chat_id)
+
                 elif received_data.data_type == "form":
                     form_data = received_data.data[0]
-                    form_order = form_data[-1]
                     service_type = form_data[2]
                     service_name = form_data[3]
-                    if form_order == 0:
+                    form_step = received_data.step
+                    if form_step == 0:
                         download_link = await user_files_service.upload_file(
                             id=form_data[1],
                             service_type=service_type,
@@ -117,13 +117,13 @@ async def websocket_endpoint(
                             # TODO: Add this to a same function
                             await _send_websocket_message(
                                 data=WebsocketData(
-                                    data=[2, attrs, payment_details.id],
+                                    data=[attrs, payment_details.id],
                                     data_type="form",
+                                    step=2
                                 ),
                                 chat_id=chat_id,
                                 websocket=websocket,
                             )
-
                         else:
                             appointment, attrs = await form_service.create_init_obj(
                                 user_email=current_user.email,
@@ -145,14 +145,15 @@ async def websocket_endpoint(
 
                             await _send_websocket_message(
                                 data=WebsocketData(
-                                    data=[1, attrs, appointment.id],
+                                    data=[attrs, appointment.id, service_type, service_name],
                                     data_type="form",
+                                    step=1
                                 ),
                                 chat_id=chat_id,
                                 websocket=websocket,
                             )
 
-                    elif form_order == 1:
+                    elif form_step == 1:
                         logging.info("Processing appoitment")
                         data = form_data[0]
                         date_str = data["appointment"]["value"]
@@ -179,8 +180,9 @@ async def websocket_endpoint(
 
                         await _send_websocket_message(
                             data=WebsocketData(
-                                data=[2, attrs, payment_details.id],
+                                data=[attrs, payment_details.id],
                                 data_type="form",
+                                step=2
                             ),
                             chat_id=chat_id,
                             websocket=websocket,
@@ -188,7 +190,7 @@ async def websocket_endpoint(
                         )
 
 
-                    elif form_order == 2:
+                    elif form_step == 2:
                         await form_service.update_obj(
                             id=form_data[1],
                             class_type=PaymentDetails,
@@ -209,8 +211,9 @@ async def websocket_endpoint(
                         else:
                             await _send_websocket_message(
                                 data=WebsocketData(
-                                    data=[3],
+                                    data=None,
                                     data_type="form",
+                                    step=3
                                 ),
                                 chat_id=chat_id,
                                 websocket=websocket,
@@ -304,8 +307,9 @@ async def chat(
 
                     await _send_websocket_message(
                         data=WebsocketData(
-                            data=[0, part.content[2], part.content[3], part.content[4], part.content[5]],
+                            data=[part.content[2], part.content[3], part.content[4], part.content[5]],
                             data_type="form",
+                            step=0
                         ),
                         chat_id=chat_id,
                         websocket=websocket,
@@ -329,8 +333,9 @@ async def chat(
 
                     await _send_websocket_message(
                         data=WebsocketData(
-                            data=[3],
+                            data=None,
                             data_type="form",
+                            step=3
                         ),
                         chat_id=chat_id,
                         websocket=websocket,
@@ -362,8 +367,9 @@ async def chat(
 
                 await _send_websocket_message(
                     data=WebsocketData(
-                        data=[3],
+                        data=None,
                         data_type="form",
+                        step=3
                     ),
                     chat_id=chat_id,
                     websocket=websocket,
