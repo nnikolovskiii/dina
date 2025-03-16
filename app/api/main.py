@@ -4,8 +4,10 @@ import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 import logging
-from app.api.routes import code, chat, websocket, test, collection_data, code_files, docs, links, process, flag, auth, \
+
+from app.api.routes import code, chat, test, code_files, docs, links, process, flag, auth, \
     pdf_handler, collection_data
+from app.websocket import websocket
 from app.databases.singletons import get_mongo_db, get_qdrant_db
 
 logging.basicConfig(level=logging.DEBUG)
