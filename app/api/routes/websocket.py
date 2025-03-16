@@ -38,6 +38,10 @@ mdb_dep = Annotated[MongoDBDatabase, Depends(get_mongo_db)]
 no_appointment_services = {"Вадење на извод од матична книга на родени за полнолетен граѓанин"}
 
 
+class ChatResponse(MongoEntry):
+    text: Optional[str] = None
+
+
 class WebsocketData(MongoEntry):
     data_type: str
     data: Any
@@ -67,22 +71,33 @@ async def websocket_endpoint(
             async with chat_locks[chat_id]:
                 chat_obj = await mdb.get_entry(ObjectId(chat_id), Chat)
 
-                response = ""
+                response = ChatResponse(text="")
 
                 if received_data.data_type == "chat":
-                    await mdb.add_entry(Message(
-                        role="user",
-                        content=message,
-                        order=chat_obj.num_messages,
-                        chat_id=chat_id
-                    ))
+                    await mdb.add_entry(
+                        Message(
+                            role="user",
+                            content=message,
+                            order=chat_obj.num_messages,
+                            chat_id=chat_id
+                        )
+                    )
 
-                    response = await chat(mdb=mdb, current_user=current_user, websocket=websocket, message=message,
-                                          message_history=message_history, chat_id=chat_id)
+                    await chat(
+                        mdb=mdb,
+                        current_user=current_user,
+                        websocket=websocket,
+                        message=message,
+                        message_history=message_history,
+                        chat_id=chat_id,
+                        response=response
+                    )
 
                 elif received_data.data_type == "form":
+
                     form_service_data: FormServiceData = FormServiceData(**received_data.data[0])
                     form_step = received_data.step
+
                     if form_step == 0:
                         download_link = await user_files_service.upload_file(
                             id=form_service_data.form_id,
@@ -92,19 +107,19 @@ async def websocket_endpoint(
                         )
 
                         di = {download_link: form_service_data.service_type}
-                        response += f"Ова е линкот до вашиот документ: "
+                        message = f"Ова е линкот до вашиот документ: "
                         link = _get_link_template(di)
-                        response += link
-                        response += "\n\n"
-                        response += "Ве молам изберете кој термин сакате да го закажете:\n"
+                        message += link
 
                         await _send_websocket_data(
-                            data=WebsocketData(
+                            websocket_data=WebsocketData(
                                 data_type="stream",
-                                data=response,
+                                data=message,
                             ),
                             websocket=websocket,
+                            response=response,
                             chat_id=chat_id,
+                            single=True
                         )
 
                         if form_service_data.service_name in no_appointment_services:
@@ -115,7 +130,7 @@ async def websocket_endpoint(
                             )
                             # TODO: Add this to a same function
                             await _send_websocket_data(
-                                data=WebsocketData(
+                                websocket_data=WebsocketData(
                                     data=FormServiceData(
                                         form_data=attrs,
                                         form_id=payment_details.id,
@@ -126,10 +141,23 @@ async def websocket_endpoint(
                                     data_type="form",
                                     step=2
                                 ),
-                                chat_id=chat_id,
                                 websocket=websocket,
+                                chat_id=chat_id,
                             )
                         else:
+                            message = "Ве молам изберете кој термин сакате да го закажете:"
+
+                            await _send_websocket_data(
+                                websocket_data=WebsocketData(
+                                    data_type="stream",
+                                    data=message,
+                                ),
+                                websocket=websocket,
+                                response=response,
+                                chat_id=chat_id,
+                                single=True
+                            )
+
                             appointment, attrs = await form_service.create_init_obj(
                                 user_email=current_user.email,
                                 class_type=Appointment,
@@ -138,6 +166,7 @@ async def websocket_endpoint(
                                        "service_type": form_service_data.service_type},
                                 other_existing_cols_vals={"service_type": form_service_data.service_type}
                             )
+
 
                             # TODO: This should not be hardcoded
                             attrs['appointment'] = {
@@ -150,7 +179,7 @@ async def websocket_endpoint(
                             }
 
                             await _send_websocket_data(
-                                data=WebsocketData(
+                                websocket_data=WebsocketData(
                                     data=FormServiceData(
                                         form_data=attrs,
                                         form_id=appointment.id,
@@ -161,12 +190,13 @@ async def websocket_endpoint(
                                     data_type="form",
                                     step=1
                                 ),
-                                chat_id=chat_id,
                                 websocket=websocket,
+                                chat_id=chat_id,
                             )
 
                     elif form_step == 1:
                         logging.info("Processing appointment")
+
                         form_data = form_service_data.form_data
                         date_str = form_data["appointment"]["value"]
                         li = date_str.split(",")
@@ -191,7 +221,7 @@ async def websocket_endpoint(
                         )
 
                         await _send_websocket_data(
-                            data=
+                            websocket_data=
                             WebsocketData(
                                 data=FormServiceData(
                                     form_data=attrs,
@@ -203,9 +233,8 @@ async def websocket_endpoint(
                                 data_type="form",
                                 step=2
                             ),
-                            chat_id=chat_id,
                             websocket=websocket,
-
+                            chat_id=chat_id,
                         )
 
 
@@ -217,25 +246,26 @@ async def websocket_endpoint(
                         )
 
                         await _send_websocket_data(
-                            data=WebsocketData(
+                            websocket_data=WebsocketData(
                                 data="✅ Плаќањет е успешно. Вашето барање е успешно поденесено.",
                                 data_type="no_stream",
                             ),
                             websocket=websocket,
                             chat_id=chat_id,
+                            response=response
                         )
 
                         if form_service_data.service_name in no_appointment_services:
                             pass
                         else:
                             await _send_websocket_data(
-                                data=WebsocketData(
+                                websocket_data=WebsocketData(
                                     data=None,
                                     data_type="form",
                                     step=3
                                 ),
-                                chat_id=chat_id,
                                 websocket=websocket,
+                                chat_id=chat_id,
                             )
 
                         await email_service.send_email(
@@ -245,13 +275,16 @@ async def websocket_endpoint(
                             download_link=form_service_data.download_link
                         )
 
-                if response != "":
-                    await mdb.add_entry(Message(
-                        role="assistant",
-                        content=response,
-                        order=chat_obj.num_messages,
-                        chat_id=chat_id
-                    ))
+                print(response)
+                if response.text != "":
+                    await mdb.add_entry(
+                        Message(
+                            role="assistant",
+                            content=response.text,
+                            order=chat_obj.num_messages,
+                            chat_id=chat_id
+                        )
+                    )
 
                     chat_obj.num_messages += 1
                     await mdb.update_entry(chat_obj)
@@ -276,128 +309,131 @@ async def chat(
         websocket: WebSocket,
         message: str,
         message_history: list[ModelRequest | ModelResponse] | None,
-        chat_id: str
+        chat_id: str,
+        response: Optional[ChatResponse] = None,
 ):
-    response = ""
     async with agent.run_stream(message, deps=current_user,
                                 message_history=message_history) as result:
+        # if it is a stream result
         if isinstance(result, Sequence) and len(result) == 2 and isinstance(result[0], StreamedRunResult):
             stream_result, tools_used = result
             async for message in stream_result.stream_text(delta=True):
-                response += message
-
                 await _send_websocket_data(
-                    data=WebsocketData(
+                    websocket_data=WebsocketData(
                         data=message,
                         data_type="stream",
                     ),
-                    chat_id=chat_id,
                     websocket=websocket,
-                    end=False
+                    response=response,
+                    chat_id=chat_id,
                 )
-
-            await _send_chat_id(chat_id=chat_id, websocket=websocket)
 
             if "get_service_info" in tools_used:
                 links = await _get_service_links(mdb=mdb, tool_part=tools_used["get_service_info"])
 
                 await _send_websocket_data(
-                    data=WebsocketData(
+                    websocket_data=WebsocketData(
                         data=links,
                         data_type="stream",
                     ),
-                    chat_id=chat_id,
                     websocket=websocket,
+                    response=response,
+                    chat_id=chat_id,
                 )
 
-                response += links
-
-            await _send_chat_id(chat_id, websocket)
+        # if it is a tool_calling
         elif isinstance(result, ToolReturnPart):
             part = result
             data: FormServiceData = result.content
+
+            # tool: initiate_service_application_workflow
             if hasattr(part, "tool_name") and part.tool_name == "initiate_service_application_workflow":
                 if data.status == FormServiceStatus.NO_INFO:
                     await _send_websocket_data(
-                        data=WebsocketData(
+                        websocket_data=WebsocketData(
                             data='Ве молам пополнете ги податоците што недостигаат за создавање на документот:',
                             data_type="stream",
                         ),
                         websocket=websocket,
                         chat_id=chat_id,
+                        single=True
                     )
 
                     await _send_websocket_data(
-                        data=WebsocketData(
+                        websocket_data=WebsocketData(
                             data=data,
                             data_type="form",
                             step=0
                         ),
-                        chat_id=chat_id,
                         websocket=websocket,
+                        chat_id=chat_id,
                     )
 
                 elif data.status == FormServiceStatus.INFO:
-                    response += "Веќе имате закажано термин. Ова е линкот до вашиот документ: "
+                    message = "Веќе имате закажано термин. Ова е линкот до вашиот документ: "
                     di = {data.download_link: data.service_type}
                     link = _get_link_template(di)
-                    response += link
+                    message += link
+                    message += "\n\n" + "Подолу ќе ви ги прикажам сите ваши закажани термини:"
 
                     await _send_websocket_data(
-                        data=WebsocketData(
-                            data=response + "\n\n" + "Подолу ќе ви ги прикажам сите ваши закажани термини:",
+                        websocket_data=WebsocketData(
+                            data=message,
                             data_type="no_stream"
                         ),
                         websocket=websocket,
+                        response=response,
                         chat_id=chat_id,
                     )
 
                     await _send_websocket_data(
-                        data=WebsocketData(
+                        websocket_data=WebsocketData(
                             data=None,
                             data_type="form",
                             step=3
                         ),
-                        chat_id=chat_id,
                         websocket=websocket,
+                        chat_id=chat_id,
                     )
 
 
                 elif data.status == FormServiceStatus.NO_SERVICE:
                     logging.info("No service. Sending message.")
                     await _send_websocket_data(
-                        data=WebsocketData(
+                        websocket_data=WebsocketData(
                             data=data.status_message,
                             data_type="no_stream"
                         ),
                         websocket=websocket,
+                        response=response,
                         chat_id=chat_id,
                     )
 
 
-            # list_all_appointments
+            # tool: list_all_appointments
             elif hasattr(part, "tool_name") and part.tool_name == "list_all_appointments":
-                logging.info("Lisitng all appointments.")
+                logging.info("Listing all appointments.")
                 await _send_websocket_data(
-                    data=WebsocketData(
+                    websocket_data=WebsocketData(
                         data="Подоле ви се прикажани сите закажани термини:",
                         data_type="no_stream",
                     ),
                     websocket=websocket,
                     chat_id=chat_id,
+                    response=response
                 )
 
                 await _send_websocket_data(
-                    data=WebsocketData(
+                    websocket_data=WebsocketData(
                         data=None,
                         data_type="form",
                         step=3
                     ),
-                    chat_id=chat_id,
                     websocket=websocket,
+                    chat_id=chat_id,
                 )
 
-    return response
+    await _send_chat_id(chat_id, websocket)
 
 
 async def _get_service_links(mdb: MongoDBDatabase, tool_part: ToolReturnPart) -> str:
@@ -438,15 +474,20 @@ async def _send_chat_id(chat_id: str, websocket: WebSocket):
 
 
 async def _send_websocket_data(
-        data: WebsocketData,
+        websocket_data: WebsocketData,
         websocket: WebSocket,
         chat_id: str,
-        end: bool = True
+        response: Optional[ChatResponse] = None,
+        single: bool = False
 ):
-    await websocket.send_json(data.model_dump())
+    # add the message to the response
+    if response is not None and isinstance(websocket_data.data, str):
+        response.text += websocket_data.data
+
+    await websocket.send_json(websocket_data.model_dump())
     await asyncio.sleep(0)
 
-    if data.data_type == "stream" and end:
+    if websocket_data.data_type == "stream" and single:
         await _send_chat_id(chat_id, websocket)
 
 
