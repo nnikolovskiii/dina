@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -6,7 +7,8 @@ from fastapi import FastAPI
 import logging
 
 from app.api.routes import code, chat, test, code_files, docs, links, process, flag, auth, \
-    pdf_handler, collection_data
+    pdf_handler, collection_data, agent
+from app.container import container
 from app.websocket import websocket
 from app.databases.singletons import get_mongo_db, get_qdrant_db
 
@@ -21,8 +23,8 @@ async def lifespan(app: FastAPI):
     # user_files_service = container.user_files_service()
     # lol = user_files_service.get_missing(PersonalID(name="nikola"))
     # print(lol)
-    # bot = container.telegram_bot()
-    # asyncio.create_task(bot.start())
+    bot = container.telegram_bot()
+    asyncio.create_task(bot.start())
     yield
     # await bot.stop()
     mdb = await get_mongo_db()
@@ -64,6 +66,9 @@ app.include_router(process.router, prefix="/process", tags=["process"])
 app.include_router(flag.router, prefix="/flag", tags=["flag"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(pdf_handler.router, prefix="/pdf", tags=["pdf"])
+
+app.include_router(agent.router, prefix="/agent", tags=["agent"])
+
 
 if __name__ == "__main__":
     uvicorn.run(

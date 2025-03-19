@@ -15,6 +15,7 @@ from telegram.constants import ParseMode
 from dotenv import load_dotenv
 
 from app.chat.service import ChatService
+from app.dina.feedback_agent.pydantic_agent import Agent
 from app.llms.models import ChatLLM
 
 load_dotenv()
@@ -26,7 +27,8 @@ class TelegramBot:
         # Create the Application instance first
         self.application = ApplicationBuilder().token(self.token).build()
         self.bot = self.application.bot
-        self.model: Optional[ChatLLM] = None
+        from app.task_manager.agent import agent
+        self.agent: Optional[Agent] = agent
         self._setup_handlers()
 
     def _setup_handlers(self):
@@ -35,31 +37,29 @@ class TelegramBot:
 
     async def initialize_model(self):
         """Async initialization of model"""
-        self.model = await self.chat_service.get_model("gpt-4o", ChatLLM)
+        # self.model = await self.chat_service.get_model("gpt-4o", ChatLLM)
+        pass
 
     async def _handle_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Hello! I'm your AI assistant. How can I help you today?")
 
     async def _handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if not self.model:
-            await update.message.reply_text("Bot is initializing, please wait...")
-            return
-
         chat_id = update.message.chat_id
         user_message = update.message.text
         logging.info(f"Received message from {chat_id}: {user_message}")
 
         # Get response from AI model
         try:
-            response = await self.model.generate(user_message)
-            await self.send_message(response, chat_id)
+            result = await self.agent.run(user_message)
+            await self.send_message(result.data, chat_id)
         except Exception as e:
             logging.error(f"Error generating response: {e}")
             await self.send_message("Sorry, I encountered an error processing your request.", chat_id)
 
     async def send_message(self, message: str, chat_id: int):
         try:
-            # Escape special MarkdownV2 characters
+            # response = await agent_chat(AgentRequest(message=message))
+
             escaped_message = self._escape_markdown(message)
 
             await self.bot.send_message(

@@ -2,7 +2,7 @@ import asyncio
 
 from pydantic import BaseModel
 
-from app.agent.agent import agent
+from app.task_manager.agent import agent
 
 
 class AgentRequest(BaseModel):

@@ -28,6 +28,7 @@ class Container(containers.DeclarativeContainer):
     mdb = providers.Singleton(MongoDBDatabase)
     llm_factory = providers.Singleton(LLMFactory)
 
+
     fernet = providers.Singleton(create_fernet)
 
     chat_service = providers.Factory(
