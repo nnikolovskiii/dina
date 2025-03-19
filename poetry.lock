@@ -4488,6 +4488,17 @@ anyio = ">=3.6.2,<5"
 full = ["httpx (>=0.27.0,<0.29.0)", "itsdangerous", "jinja2", "python-multipart (>=0.0.18)", "pyyaml"]
 
 [[package]]
+name = "svgwrite"
+version = "1.4.3"
+description = "A Python library to create SVG drawings."
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "svgwrite-1.4.3-py3-none-any.whl", hash = "sha256:bb6b2b5450f1edbfa597d924f9ac2dd099e625562e492021d7dd614f65f8a22d"},
+    {file = "svgwrite-1.4.3.zip", hash = "sha256:a8fbdfd4443302a6619a7f76bc937fc683daf2628d9b737c891ec08b8ce524c3"},
+]
+
+[[package]]
 name = "sympy"
 version = "1.13.1"
 description = "Computer algebra system (CAS) in Python"
@@ -5547,4 +5558,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "32851c75bc9f08116454f59db1716b4ff4e7cd57091d23bcef52c07433f1fd75"
+content-hash = "210959598687a5f15c8c43e6d9314f2aeffc019b4d324a056260159e431023af"
