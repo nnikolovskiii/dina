@@ -1,7 +1,8 @@
 import asyncio
+import enum
 import logging
 import os
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from bson import ObjectId
 from dotenv import load_dotenv
@@ -10,11 +11,32 @@ from pydantic_ai.messages import ModelRequest, SystemPromptPart
 
 from app.auth.models.user import User
 from app.container import container
+from app.databases.mongo_db import MongoEntry
 from app.dina.feedback_agent.pydantic_agent import Agent
 from app.dina.models.service_procedure import ServiceProcedure, ServiceType
 from app.dina.pipelines.determine_service_type import determine_service_type
 from app.dina.pipelines.info_retriever import InfoRetriever, ServiceIds
 from app.llms.models import ChatLLM
+
+
+class FormData(MongoEntry):
+    form_id: Optional[str] = None
+    form_data: Optional[dict] = None
+
+
+class FormServiceStatus(str, enum.Enum):
+    NO_INFO = "no_info"
+    INFO = "info"
+    NO_SERVICE = "no_service"
+
+
+class FormServiceData(FormData):
+    service_type: Optional[str] = None
+    service_name: Optional[str] = None
+    download_link: Optional[str] = None
+    status: Optional[FormServiceStatus] = None
+    status_message: Optional[str] = None
+
 
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
@@ -68,7 +90,7 @@ async def list_all_appointments(
 async def initiate_service_application_workflow(
         ctx: RunContext[str],
         task: str
-):
+) -> FormServiceData:
     """The function facilitates a multi-step service application process that guides users through three sequential phases:
 
     Document Generation
@@ -102,7 +124,11 @@ async def initiate_service_application_workflow(
 
     # TODO: Better handling of flags
     if class_type is None:
-        return f"Се уште не го подржуваме побараниот сервис: {service_procedure.name}", "no_service"
+        logging.info("No service like this!!!")
+        return FormServiceData(
+            status_message=f"Се уште не го подржуваме побараниот сервис: {service_procedure.name}",
+            status=FormServiceStatus.NO_SERVICE
+        )
 
     document, attrs = await form_service.create_init_obj(
         user_email=ctx.deps.email,
@@ -111,10 +137,20 @@ async def initiate_service_application_workflow(
     )
 
     if len(attrs) == 0:
-        return document.download_link, "info", service_procedure.service_type
+        return FormServiceData(
+            download_link=document.download_link,
+            status=FormServiceStatus.INFO,
+            service_type=service_procedure.service_type
+        )
     else:
-        # TODO: Make these outputs as objects
-        return f"Not enough information.", "no_info", attrs, document.id, service_procedure.service_type, service_procedure.name
+        return FormServiceData(
+            status_message=f"Not enough information.",
+            status=FormServiceStatus.NO_INFO,
+            form_data=attrs,
+            form_id=document.id,
+            service_type=service_procedure.service_type,
+            service_name=service_procedure.name
+        )
 
 
 @agent.tool
