@@ -17,6 +17,7 @@ from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
 import json
 
+from app.websocket.extra_info_decorator import extra_info_handlers
 from app.websocket.handler_decorator import response_handlers
 from app.websocket.models import WebsocketData, ChatResponse
 from app.websocket.service_form import service_form
@@ -77,6 +78,7 @@ async def websocket_endpoint(
                         response=response
                     )
 
+                #TODO: make this decoupled from service_form
                 elif received_data.data_type == "form":
                     await service_form(
                         received_data=received_data,
@@ -113,7 +115,6 @@ async def websocket_endpoint(
             break
 
 
-# TODO: This should be made more decoupled
 async def chat(
         mdb: MongoDBDatabase,
         current_user: User,
@@ -140,19 +141,17 @@ async def chat(
                     chat_id=chat_id,
                 )
 
-            #TODO: this should be based more on the agent
-            if "get_service_info" in tools_used:
-                links = await get_service_links(mdb=mdb, tool_part=tools_used["get_service_info"])
+            for tool_name, tool_part in tools_used.items():
+                handler = extra_info_handlers.get(tool_name)
+                if handler:
+                    await handler(
+                        websocket=websocket,
+                        mdb=mdb,
+                        tools_used=tools_used,
+                        chat_id=chat_id,
+                        response=response,
+                    )
 
-                await send_websocket_data(
-                    websocket_data=WebsocketData(
-                        data=links,
-                        data_type="stream",
-                    ),
-                    websocket=websocket,
-                    response=response,
-                    chat_id=chat_id,
-                )
 
         # if it is a tool_calling
         elif isinstance(result, ToolReturnPart):

@@ -12,12 +12,13 @@ from starlette.websockets import WebSocket
 
 from app.auth.models.user import User
 from app.container import container
-from app.databases.mongo_db import MongoEntry
+from app.databases.mongo_db import MongoEntry, MongoDBDatabase
 from app.dina.feedback_agent.pydantic_agent import Agent
 from app.dina.models.service_procedure import ServiceProcedure, ServiceType
 from app.dina.pipelines.determine_service_type import determine_service_type
 from app.dina.pipelines.info_retriever import InfoRetriever, ServiceIds
 from app.llms.models import ChatLLM
+from app.websocket.extra_info_decorator import extra_info
 from app.websocket.handler_decorator import handle_response
 from app.websocket.models import WebsocketData, ChatResponse
 
@@ -317,5 +318,29 @@ async def handle_appointments_listing(
             step=3
         ),
         websocket=websocket,
+        chat_id=chat_id,
+    )
+
+
+@extra_info("get_service_info")  # Changed from @extra_info_handlers("get_service_info")
+async def add_docs_links(
+        websocket: WebSocket,
+        mdb: MongoDBDatabase,
+        tools_used: Any,
+        chat_id: str,
+        response: ChatResponse,
+        **kwargs
+):
+    from app.websocket.utils import send_websocket_data, get_service_links
+
+    links = await get_service_links(mdb=mdb, tool_part=tools_used["get_service_info"])
+
+    await send_websocket_data(
+        websocket_data=WebsocketData(
+            data=links,
+            data_type="stream",
+        ),
+        websocket=websocket,
+        response=response,
         chat_id=chat_id,
     )
