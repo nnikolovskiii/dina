@@ -8,8 +8,9 @@ from collections.abc import AsyncIterator, Awaitable, Iterator, Sequence
 from contextlib import asynccontextmanager, contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
+from functools import wraps
 from types import FrameType
-from typing import Any, Callable, Generic, Literal, cast, final, overload
+from typing import Any, Callable, Generic, Literal, cast, final, overload, Dict
 
 import logfire_api
 from typing_extensions import assert_never, deprecated
@@ -174,6 +175,36 @@ class Agent(Generic[AgentDeps, ResultData]):
         self._system_prompt_functions = []
         self._max_result_retries = result_retries if result_retries is not None else retries
         self._result_validators = []
+        self.response_handlers: Dict[str, Callable] = {}
+        self.extra_info_handlers: Dict[str, Callable] = {}
+
+    def handle_response(self, tool_name: str):
+        """Instance-specific response handler decorator"""
+
+        def decorator(handler: Callable):
+            self.response_handlers[tool_name] = handler
+
+            @wraps(handler)
+            async def wrapper(*args, **kwargs):
+                return await handler(*args, **kwargs)
+
+            return wrapper
+
+        return decorator
+
+    def extra_info(self, tool_name: str):
+        """Instance-specific extra info decorator"""
+
+        def decorator(handler: Callable):
+            self.extra_info_handlers[tool_name] = handler
+
+            @wraps(handler)
+            async def wrapper(*args, **kwargs):
+                return await handler(*args, **kwargs)
+
+            return wrapper
+
+        return decorator
 
     async def run(
         self,

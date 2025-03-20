@@ -142,7 +142,7 @@ async def chat(
                 )
 
             for tool_name, tool_part in tools_used.items():
-                handler = extra_info_handlers.get(tool_name)
+                handler = agent.extra_info_handlers.get(tool_name)
                 if handler:
                     await handler(
                         websocket=websocket,
@@ -160,7 +160,7 @@ async def chat(
             if hasattr(part, "tool_name"):
                 handler = response_handlers.get(part.tool_name)
                 if handler:
-                    await handler(
+                    await agent.handler(
                         data=part.content,
                         websocket=websocket,
                         chat_id=chat_id,

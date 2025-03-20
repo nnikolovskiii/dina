@@ -18,8 +18,7 @@ from app.dina.models.service_procedure import ServiceProcedure, ServiceType
 from app.dina.pipelines.determine_service_type import determine_service_type
 from app.dina.pipelines.info_retriever import InfoRetriever, ServiceIds
 from app.llms.models import ChatLLM
-from app.websocket.extra_info_decorator import extra_info
-from app.websocket.handler_decorator import handle_response
+
 from app.websocket.models import WebsocketData, ChatResponse
 
 
@@ -218,7 +217,7 @@ async def get_service_info(
     #     return "Оваа задача не е релевантна за административните институции во Македонија. Доколку ви треба помош со информации или постапки поврзани со институции во Македонија, слободно прашајте!", []
 
 
-@handle_response("initiate_service_application_workflow")
+@agent.handle_response("initiate_service_application_workflow")
 async def handle_service_application(
         data: FormServiceData,
         websocket: WebSocket,
@@ -290,7 +289,7 @@ async def handle_service_application(
         )
 
 
-@handle_response("list_all_appointments")
+@agent.handle_response("list_all_appointments")
 async def handle_appointments_listing(
         data: FormServiceData,
         websocket: WebSocket,
@@ -322,7 +321,7 @@ async def handle_appointments_listing(
     )
 
 
-@extra_info("get_service_info")  # Changed from @extra_info_handlers("get_service_info")
+@agent.extra_info("get_service_info")  # Changed from @extra_info_handlers("get_service_info")
 async def add_docs_links(
         websocket: WebSocket,
         mdb: MongoDBDatabase,
