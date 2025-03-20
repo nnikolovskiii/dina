@@ -2,12 +2,13 @@ import asyncio
 import enum
 import logging
 import os
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Any
 
 from bson import ObjectId
 from dotenv import load_dotenv
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ModelRequest, SystemPromptPart
+from starlette.websockets import WebSocket
 
 from app.auth.models.user import User
 from app.container import container
@@ -17,6 +18,8 @@ from app.dina.models.service_procedure import ServiceProcedure, ServiceType
 from app.dina.pipelines.determine_service_type import determine_service_type
 from app.dina.pipelines.info_retriever import InfoRetriever, ServiceIds
 from app.llms.models import ChatLLM
+from app.websocket.handler_decorator import handle_response
+from app.websocket.models import WebsocketData, ChatResponse
 
 
 class FormData(MongoEntry):
@@ -212,3 +215,107 @@ async def get_service_info(
 
     # else:
     #     return "Оваа задача не е релевантна за административните институции во Македонија. Доколку ви треба помош со информации или постапки поврзани со институции во Македонија, слободно прашајте!", []
+
+
+@handle_response("initiate_service_application_workflow")
+async def handle_service_application(
+        data: FormServiceData,
+        websocket: WebSocket,
+        chat_id: str,
+        response: ChatResponse,
+        **kwargs
+):
+    from app.websocket.utils import send_websocket_data, get_link_template
+
+    if data.status == FormServiceStatus.NO_INFO:
+        await send_websocket_data(
+            websocket_data=WebsocketData(
+                data='Ве молам пополнете ги податоците што недостигаат за создавање на документот:',
+                data_type="stream",
+            ),
+            websocket=websocket,
+            chat_id=chat_id,
+            single=True
+        )
+
+        await send_websocket_data(
+            websocket_data=WebsocketData(
+                data=data,
+                data_type="form",
+                step=0
+            ),
+            websocket=websocket,
+            chat_id=chat_id,
+        )
+
+    elif data.status == FormServiceStatus.INFO:
+        message = "Веќе имате закажано термин. Ова е линкот до вашиот документ: "
+        di = {data.download_link: data.service_type}
+        link = get_link_template(di)
+        message += link
+        message += "\n\n" + "Подолу ќе ви ги прикажам сите ваши закажани термини:"
+
+        await send_websocket_data(
+            websocket_data=WebsocketData(
+                data=message,
+                data_type="no_stream"
+            ),
+            websocket=websocket,
+            response=response,
+            chat_id=chat_id,
+        )
+
+        await send_websocket_data(
+            websocket_data=WebsocketData(
+                data=None,
+                data_type="form",
+                step=3
+            ),
+            websocket=websocket,
+            chat_id=chat_id,
+        )
+
+
+    elif data.status == FormServiceStatus.NO_SERVICE:
+        logging.info("No service. Sending message.")
+        await send_websocket_data(
+            websocket_data=WebsocketData(
+                data=data.status_message,
+                data_type="no_stream"
+            ),
+            websocket=websocket,
+            response=response,
+            chat_id=chat_id,
+        )
+
+
+@handle_response("list_all_appointments")
+async def handle_appointments_listing(
+        data: FormServiceData,
+        websocket: WebSocket,
+        chat_id: str,
+        response: ChatResponse,
+        **kwargs
+):
+    from app.websocket.utils import send_websocket_data
+
+    logging.info("Listing all appointments.")
+    await send_websocket_data(
+        websocket_data=WebsocketData(
+            data="Подоле ви се прикажани сите закажани термини:",
+            data_type="no_stream",
+        ),
+        websocket=websocket,
+        chat_id=chat_id,
+        response=response
+    )
+
+    await send_websocket_data(
+        websocket_data=WebsocketData(
+            data=None,
+            data_type="form",
+            step=3
+        ),
+        websocket=websocket,
+        chat_id=chat_id,
+    )

@@ -9,8 +9,9 @@ import logging
 from app.api.routes import code, chat, test, code_files, docs, links, process, flag, auth, \
     pdf_handler, collection_data, agent
 from app.container import container
-from app.websocket import websocket
 from app.databases.singletons import get_mongo_db, get_qdrant_db
+from app.websocket import websocket
+
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('pymongo').setLevel(logging.WARNING)

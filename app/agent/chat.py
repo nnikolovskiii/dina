@@ -17,4 +17,4 @@ async def agent_chat(agent_request: AgentRequest) -> str:
     return response
 
 
-asyncio.run(agent_chat(AgentRequest(message="Hello. what is your name?")))
+# asyncio.run(agent_chat(AgentRequest(message="Hello. what is your name?")))
