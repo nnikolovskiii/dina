@@ -20,8 +20,11 @@ from app.llms.models import ChatLLM
 
 load_dotenv()
 
+
 class TelegramBot:
     def __init__(self, chat_service: ChatService):
+        logging.getLogger("httpx").setLevel(logging.WARNING)
+
         self.chat_service = chat_service
         self.token = os.getenv("TELEGRAM_TOKEN")
         # Create the Application instance first
@@ -74,7 +77,7 @@ class TelegramBot:
 
     def _escape_markdown(self, text: str) -> str:
         """Escape special MarkdownV2 characters"""
-        escape_chars = '_*[]~`>#+-=|{}.!'
+        escape_chars = '_*[]()~`>#+-=|{}.!'  # Added () to escape characters
         return ''.join(['\\' + char if char in escape_chars else char for char in text])
 
     async def start(self):

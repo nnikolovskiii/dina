@@ -40,8 +40,27 @@ async def create_tasks(
         ctx: RunContext[str],
         text: str
 ):
-    """Automates the conversion of unstructured text (e.g., user instructions, project descriptions) into actionable, well-defined tasks. It leverages AI to analyze the input, identify actionable items, and generate a structured list of tasks with clear titles and descriptions. These tasks are then stored for future tracking or execution, making it useful for scenarios like project planning, workflow automation, or breaking down complex requests into manageable steps.
+    """From the user text creates singular tasks.
     """
     from app.task_manager.pipelines.create_task import create_task
     tasks = await create_task(text=text)
     return "Tasks are created successfully."
+
+
+@agent.tool
+async def activity_tracking(
+        ctx: RunContext[str],
+        activity: str
+):
+    """Given the activity from the user it marks tasks as completed or not."""
+    from app.task_manager.pipelines.activity_tracking import activity_tracking
+    return await activity_tracking(activity=activity)
+
+
+@agent.tool
+async def prioritize_tasks(
+        ctx: RunContext[str],
+):
+    """When the user asks explicitly for you to prioritize the tasks."""
+    from app.task_manager.pipelines.prioritize_tasks import prioritize_tasks
+    return await prioritize_tasks()
