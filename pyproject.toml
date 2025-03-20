@@ -5,6 +5,10 @@ description = ""
 authors = ["Nikola Nikolovski <nikolovski.nikola42@gmail.com>"]
 readme = "README.md"
 
+packages = [
+    { include = "app" }
+]
+
 [tool.poetry.dependencies]
 python = "^3.12"
 fastapi = {extras = ["standard"], version = "^0.115.5"}
@@ -42,10 +46,10 @@ python-telegram-bot = "^21.10"
 passlib = "^1.7.4"
 jose = "^1.0.0"
 pytest = "^8.3.4"
-weasyprint = "^64.1"
 reportlab = "^4.3.1"
 aiosmtplib = "^4.0.0"
 svgwrite = "^1.4.3"
+xhtml2pdf = "^0.2.17"
 
 
 [build-system]

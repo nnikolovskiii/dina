@@ -7,7 +7,7 @@ from typing import Union, get_origin, get_args, TypeVar, Type, Optional
 
 from bson import ObjectId
 from dotenv import load_dotenv
-from weasyprint import HTML
+from xhtml2pdf import pisa
 
 from app.auth.services.user import UserService
 from pydantic import EmailStr
@@ -89,16 +89,14 @@ class UserFilesService:
             data: dict,
             service_name: Optional[str] = None,
     ) -> str | None:
-        # TODO: Perform this with the formsService
         class_type = self.get_doc_class_type(service_type, service_name)
 
         if class_type is None:
             logging.error(f"There is no such class for the the type: {service_type}")
 
         document_obj = await self.mdb.get_entry(ObjectId(id), class_type=class_type)
-        logging.info(document_obj)
-
         args = document_obj.model_dump()
+
         for key, value in data.items():
             args[key] = value["value"]
 
@@ -108,13 +106,23 @@ class UserFilesService:
 
         try:
             logger.info("Generating PDF from HTML template.")
-            HTML(string=html_content).write_pdf(pdf_buffer)
+
+            # Convert HTML to PDF using xhtml2pdf
+            pdf_status = pisa.CreatePDF(
+                html_content,
+                dest=pdf_buffer,
+                encoding='UTF-8'
+            )
+
+            if pdf_status.err:
+                logger.error("PDF generation failed with errors")
+                raise ValueError("PDF creation failed")
+
             logger.info("PDF generation successful.")
-
             unique_id = uuid.uuid4().hex
-            filename = f"obrazec_licna_karta_{unique_id}.pdf"
-            logger.info(f"Uploading PDF file: {filename}")
+            filename = f"document_{unique_id}.pdf"
 
+            logger.info(f"Uploading PDF file: {filename}")
             upload_response = self.file_system_service.upload_file(
                 file_data=pdf_buffer.getvalue(),
                 filename=filename,
@@ -122,7 +130,6 @@ class UserFilesService:
             )
 
             logger.info(f"PDF successfully uploaded: {upload_response}")
-
             download_link = f"{self.base_url}/download/{filename}"
             document_obj.download_link = download_link
             await self.mdb.update_entry(document_obj)
@@ -131,7 +138,7 @@ class UserFilesService:
 
         except Exception as e:
             logger.error(f"Error processing PDF: {str(e)}", exc_info=True)
-            raise  # Consider re-raising or yielding an error message if needed
+            raise
 
         finally:
             pdf_buffer.close()
