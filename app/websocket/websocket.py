@@ -17,7 +17,6 @@ from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
 import json
 
-from app.websocket.extra_info_decorator import extra_info_handlers
 from app.websocket.handler_decorator import response_handlers
 from app.websocket.models import WebsocketData, ChatResponse
 from app.websocket.service_form import service_form
@@ -158,9 +157,9 @@ async def chat(
             part = result
 
             if hasattr(part, "tool_name"):
-                handler = response_handlers.get(part.tool_name)
+                handler = agent.response_handlers.get(part.tool_name)
                 if handler:
-                    await agent.handler(
+                    await handler(
                         data=part.content,
                         websocket=websocket,
                         chat_id=chat_id,
