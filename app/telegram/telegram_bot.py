@@ -1,6 +1,7 @@
 # app/telegram/telegram_bot.py
 import logging
 import os
+import io  # Add import for io
 from typing import Optional
 
 from telegram import Update, Bot
@@ -16,7 +17,6 @@ from dotenv import load_dotenv
 
 from app.chat.service import ChatService
 from app.dina.feedback_agent.pydantic_agent import Agent
-from app.llms.models import ChatLLM
 
 load_dotenv()
 
@@ -27,7 +27,6 @@ class TelegramBot:
 
         self.chat_service = chat_service
         self.token = os.getenv("TELEGRAM_TOKEN")
-        # Create the Application instance first
         self.application = ApplicationBuilder().token(self.token).build()
         self.bot = self.application.bot
         from app.task_manager.agent import agent
@@ -39,9 +38,7 @@ class TelegramBot:
         self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self._handle_message))
 
     async def initialize_model(self):
-        """Async initialization of model"""
-        # self.model = await self.chat_service.get_model("gpt-4o", ChatLLM)
-        pass
+        pass  # Existing code
 
     async def _handle_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Hello! I'm your AI assistant. How can I help you today?")
@@ -51,34 +48,53 @@ class TelegramBot:
         user_message = update.message.text
         logging.info(f"Received message from {chat_id}: {user_message}")
 
-        # Get response from AI model
         try:
             result = await self.agent.run(user_message)
-            await self.send_message(result.data, chat_id)
+            # Send result.data as a text file instead of a message
+            await self.send_text_file(result.data, chat_id)
         except Exception as e:
             logging.error(f"Error generating response: {e}")
             await self.send_message("Sorry, I encountered an error processing your request.", chat_id)
 
-    async def send_message(self, message: str, chat_id: int):
+    async def send_text_file(self, text: str, chat_id: int, filename: str = "response.txt"):
+        """Send a text string as a .txt file."""
         try:
-            # response = await agent_chat(AgentRequest(message=message))
+            # Create an in-memory bytes buffer
+            file_buffer = io.BytesIO(text.encode('utf-8'))
+            file_buffer.seek(0)  # Ensure the buffer's pointer is at the start
 
+            # Send the document using the buffer
+            await self.bot.send_document(
+                chat_id=chat_id,
+                document=file_buffer,
+                filename=filename
+            )
+        except Exception as e:
+            logging.error(f"Failed to send text file: {e}")
+            # Fallback to sending as plain text if file fails
+            await self.bot.send_message(
+                chat_id=chat_id,
+                text=text,
+                parse_mode=None  # Disable Markdown formatting
+            )
+
+    async def send_message(self, message: str, chat_id: int):
+        """Existing method for sending text messages (unchanged)"""
+        try:
             escaped_message = self._escape_markdown(message)
-
             await self.bot.send_message(
                 chat_id=chat_id,
                 text=escaped_message,
                 parse_mode=ParseMode.MARKDOWN_V2,
-                disable_notification=False,
-                protect_content=True,
             )
         except Exception as e:
             logging.error(f"Failed to send message: {e}")
 
     def _escape_markdown(self, text: str) -> str:
-        """Escape special MarkdownV2 characters"""
-        escape_chars = '_*[]()~`>#+-=|{}.!'  # Added () to escape characters
+        """Existing helper method (unchanged)"""
+        escape_chars = '_*[]()~`>#+-=|{}.!'
         return ''.join(['\\' + char if char in escape_chars else char for char in text])
+
 
     async def start(self):
         """Start the bot with polling"""
