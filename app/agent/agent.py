@@ -6,7 +6,7 @@ from pydantic_ai.messages import ModelRequest, SystemPromptPart
 
 from app.agent.pipelines.alert_handler import alert_handler
 from app.auth.models.user import User
-from app.dina.feedback_agent.pydantic_agent import Agent
+from app.pydantic_ai_agent import Agent
 
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")

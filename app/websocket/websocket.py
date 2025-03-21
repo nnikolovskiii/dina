@@ -17,11 +17,10 @@ from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
 import json
 
-from app.websocket.handler_decorator import response_handlers
+from app.dina.handle_request.create_pdf import create_pdf
 from app.websocket.models import WebsocketData, ChatResponse
-from app.websocket.service_form import service_form
-from app.websocket.utils import send_chat_id, send_websocket_data, get_link_template, get_service_links, \
-    get_chat_id_and_message, get_history
+from app.dina.handle_request.service_form import service_form
+from app.websocket.utils import send_chat_id, send_websocket_data, get_chat_id_and_message, get_history
 
 logging.basicConfig(level=logging.DEBUG)
 from fastapi import APIRouter, Depends
@@ -87,6 +86,14 @@ async def websocket_endpoint(
                         response=response,
                     )
 
+                elif received_data.data_type == "form1":
+                    await create_pdf(
+                        received_data=received_data,
+                        websocket=websocket,
+                        chat_id=chat_id,
+                        response=response,
+                    )
+
                 if response.text != "":
                     await mdb.add_entry(
                         Message(
@@ -123,9 +130,9 @@ async def chat(
         chat_id: str,
         response: Optional[ChatResponse] = None,
 ):
-    from app.dina.agents.pydantic_agent import agent, FormServiceData
-    async with agent.run_stream(message, deps=current_user,
-                                message_history=message_history) as result:
+    from app.dina.agent import dina_agent
+    async with dina_agent.run_stream(message, deps=current_user,
+                                     message_history=message_history) as result:
         # if it is a stream result
         if isinstance(result, Sequence) and len(result) == 2 and isinstance(result[0], StreamedRunResult):
             stream_result, tools_used = result
@@ -141,7 +148,7 @@ async def chat(
                 )
 
             for tool_name, tool_part in tools_used.items():
-                handler = agent.extra_info_handlers.get(tool_name)
+                handler = dina_agent.extra_info_handlers.get(tool_name)
                 if handler:
                     await handler(
                         websocket=websocket,
@@ -157,7 +164,7 @@ async def chat(
             part = result
 
             if hasattr(part, "tool_name"):
-                handler = agent.response_handlers.get(part.tool_name)
+                handler = dina_agent.response_handlers.get(part.tool_name)
                 if handler:
                     await handler(
                         data=part.content,

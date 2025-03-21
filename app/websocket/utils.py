@@ -9,7 +9,7 @@ import logging
 
 from app.container import container
 from app.databases.mongo_db import MongoDBDatabase
-from app.dina.agents.pydantic_agent import get_system_messages
+from app.dina.agent import get_system_messages
 from app.dina.models.service_procedure import ServiceProcedureDocument
 from app.websocket.models import WebsocketData, ChatResponse
 

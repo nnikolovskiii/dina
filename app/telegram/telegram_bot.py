@@ -4,7 +4,7 @@ import os
 import io  # Add import for io
 from typing import Optional
 
-from telegram import Update, Bot
+from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
     ContextTypes,
@@ -16,7 +16,7 @@ from telegram.constants import ParseMode
 from dotenv import load_dotenv
 
 from app.chat.service import ChatService
-from app.dina.feedback_agent.pydantic_agent import Agent
+from app.pydantic_ai_agent import Agent
 
 load_dotenv()
 

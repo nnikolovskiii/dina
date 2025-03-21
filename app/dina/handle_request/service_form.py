@@ -3,7 +3,7 @@ import logging
 from app.auth.models.user import User
 from app.chat_forms.models.payment_details import PaymentDetails
 from app.container import container
-from app.dina.agents.pydantic_agent import FormServiceData
+from app.dina.models.form_service_data import FormServiceData
 
 from fastapi import WebSocket
 
@@ -60,7 +60,7 @@ async def service_form(
                 class_type=PaymentDetails,
                 always_new=True
             )
-            # TODO: Add this to a same function
+
             await send_websocket_data(
                 websocket_data=WebsocketData(
                     data=FormServiceData(
