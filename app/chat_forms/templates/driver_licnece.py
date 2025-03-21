@@ -108,7 +108,7 @@ class DriverLicence(UserDocument):
             <table>
                 <tr><td>Општина: <div  style="width:200px">{self.municipality}</div></td></tr>
                 <tr><td>Населено место: <div  style="width:200px">{self.settlement}</div></td></tr>
-                <tr><td>Адреса: <div >{self.address}</div></td></tr>
+                <tr><td>Адреса: <div >{self.living_address}</div></td></tr>
                 <tr><td>Телефон: <div >{self.phone}</div></td></tr>
                 <tr><td>Е-пошта: <div >{self.email}</div></td></tr>
             </table>

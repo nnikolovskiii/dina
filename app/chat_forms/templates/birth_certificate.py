@@ -153,8 +153,8 @@ class BirthCertificate(UserDocument):
                 <td>Мајка</td>
             </tr>
             <tr>
-                <td>{self.father_first_name}</td>
-                <td>{self.mother_first_name}</td>
+                <td>{self.father_name}</td>
+                <td>{self.mother_name}</td>
             </tr>
             <tr>
                 <td>{self.father_surname}</td>

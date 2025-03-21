@@ -91,7 +91,7 @@ class PersonalID(UserDocument):
                         <tr><td>Место на раѓање: <div  style="width:300px">{self.place_of_birth}</div></td></tr>
                         <tr><td>Матичен број: <div  style="width:200px">{self.e_id}</div></td></tr>
                         <tr><td>Пол: <span class="checkbox"></span> машки <span class="checkbox"></span> женски</td></tr>
-                        <tr><td>Живеалиште и адреса: <div >{self.address}</div></td></tr>
+                        <tr><td>Живеалиште и адреса: <div >{self.living_address}</div></td></tr>
                         <tr><td>Државјанство: <div  style="width:200px">{self.nationality}</div></td></tr>
                     </table>
                 </div>
