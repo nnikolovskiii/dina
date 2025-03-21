@@ -94,16 +94,7 @@ async def initiate_service_application_workflow(
         ctx: RunContext[str],
         task: str
 ) -> FormServiceData:
-    """The function facilitates a multi-step service application process that guides users through three sequential phases:
-
-    Document Generation
-    Automatically prepares and provides the required application form (PDF) based on the requested service type (e.g., national ID). Returns a download link for the user.
-
-    Appointment Scheduling
-    After document submission, offers available time slots for in-person visits. Users select their preferred appointment from dynamic dropdown options.
-
-    Payment Finalization
-    Processes payment details after appointment confirmation, then sends email confirmation and marks the application as complete.
+    """Do this when the user asks for your help as an assistant to perform some type of action like: scheduling, creating documents, paying, etc.
 
     Args:
         ctx: The context.
