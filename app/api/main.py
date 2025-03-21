@@ -24,8 +24,8 @@ async def lifespan(app: FastAPI):
     # user_files_service = container.user_files_service()
     # lol = user_files_service.get_missing(PersonalID(name="nikola"))
     # print(lol)
-    bot = container.telegram_bot()
-    asyncio.create_task(bot.start())
+    # bot = container.telegram_bot()
+    # asyncio.create_task(bot.start())
     yield
     # await bot.stop()
     mdb = await get_mongo_db()
