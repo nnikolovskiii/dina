@@ -19,7 +19,8 @@ class SubmissionReason(str, enum.Enum):
     LIMITED_VALIDITY = "издавање на пасош со ограничен рок на важење"
 
 
-#TODO: Passport form needs to have a signature image and photo image.
+# TODO: Passport form needs to have a signature image and photo image.
+
 class Passport(UserDocument):
     name: Optional[str] = None
     surname: Optional[str] = None
@@ -33,6 +34,7 @@ class Passport(UserDocument):
     e_id: Optional[str] = None
     issuing_authority: Optional[str] = None
     other_language: Optional[OtherLanguages] = None
+
     # image_base64: Optional[str] = None
     # signature_base64: Optional[str] = None
 

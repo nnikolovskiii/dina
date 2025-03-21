@@ -24,10 +24,10 @@ class BirthCertificate(UserDocument):
     current_number: Optional[str] = None
     registration_year: Optional[str] = None
 
-    father_first_name: Optional[str] = None
+    father_name: Optional[str] = None
     father_surname: Optional[str] = None
     father_personal_id: Optional[str] = None
-    mother_first_name: Optional[str] = None
+    mother_name: Optional[str] = None
     mother_surname: Optional[str] = None
     mother_personal_id: Optional[str] = None
     parents_residence_address: Optional[str] = None

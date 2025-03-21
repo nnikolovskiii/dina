@@ -43,7 +43,7 @@ class DriverLicence(UserDocument):
     issuance_procedure: Optional[IssuanceProcedure] = None
     municipality: Optional[str] = None
     settlement: Optional[str] = None
-    address: Optional[str] = None
+    living_address: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
     previous_licence_number: Optional[str] = None

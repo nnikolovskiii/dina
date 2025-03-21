@@ -13,7 +13,7 @@ class PersonalID(UserDocument):
     place_of_birth: Optional[str] = None
     e_id: Optional[str] = None
     gender: Optional[GenderEnum] = None
-    address: Optional[str] = None
+    living_address: Optional[str] = None
     nationality: Optional[str] = None
     mother_name: Optional[str] = None
     father_name: Optional[str] = None
