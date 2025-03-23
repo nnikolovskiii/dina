@@ -16,7 +16,7 @@ from telegram.constants import ParseMode
 from dotenv import load_dotenv
 
 from app.chat.service import ChatService
-from app.pydantic_ai_agent import Agent
+from app.pydantic_ai_agent.pydantic_agent import Agent
 
 load_dotenv()
 

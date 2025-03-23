@@ -5,7 +5,7 @@ from pydantic_ai import RunContext
 from pydantic_ai.messages import ModelRequest, SystemPromptPart
 
 from app.auth.models.user import User
-from app.pydantic_ai_agent import Agent
+from app.pydantic_ai_agent.pydantic_agent import Agent
 
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")

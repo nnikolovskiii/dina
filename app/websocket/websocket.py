@@ -17,7 +17,6 @@ from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
 import json
 
-from app.dina.handle_request.create_pdf import create_pdf
 from app.websocket.models import WebsocketData, ChatResponse
 from app.dina.handle_request.service_form import service_form
 from app.websocket.utils import send_chat_id, send_websocket_data, get_chat_id_and_message, get_history
@@ -76,10 +75,10 @@ async def websocket_endpoint(
                         response=response
                     )
 
-                #TODO: make this decoupled from service_form
+                # TODO: make this decoupled from service_form
                 elif received_data.data_type == "form":
                     await service_form(
-                        received_data=received_data,
+                        ws_data=received_data,
                         websocket=websocket,
                         chat_id=chat_id,
                         current_user=current_user,
@@ -87,11 +86,12 @@ async def websocket_endpoint(
                     )
 
                 elif received_data.data_type == "form1":
-                    await create_pdf(
-                        received_data=received_data,
+                    await service_form(
+                        ws_data=received_data,
                         websocket=websocket,
                         chat_id=chat_id,
                         response=response,
+                        current_user=current_user,
                     )
 
                 if response.text != "":
@@ -162,16 +162,18 @@ async def chat(
         # if it is a tool_calling
         elif isinstance(result, ToolReturnPart):
             part = result
+            print("Part: ", part)
+            print("Part content: ", part.content)
 
             if hasattr(part, "tool_name"):
                 handler = dina_agent.response_handlers.get(part.tool_name)
                 if handler:
                     await handler(
-                        data=part.content,
+                        part_content=part.content,
                         websocket=websocket,
                         chat_id=chat_id,
                         response=response,
+                        current_user=current_user,
                     )
-
 
     await send_chat_id(chat_id, websocket)

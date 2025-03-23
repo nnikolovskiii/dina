@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, List
 
 import logging
 
@@ -14,4 +14,6 @@ class ChatResponse(MongoEntry):
 class WebsocketData(MongoEntry):
     data_type: str
     data: Any
-    step: Optional[int] = 0
+    intercept_type: Optional[str] = None
+    actions: List[str] = []
+    next_action: int = 0

@@ -65,7 +65,7 @@ class Container(containers.DeclarativeContainer):
         user_service=user_service,
     )
 
-    form_service = providers.Factory(
+    forms_service = providers.Factory(
         FormService,
         mdb=mdb,
         user_service=user_service,

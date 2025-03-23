@@ -9,7 +9,7 @@ from app.auth.models.user import User
 from app.databases.mongo_db import MongoDBDatabase
 from app.pydantic_ai_agent.pydantic_agent import Agent
 
-from app.websocket.models import WebsocketData, ChatResponse
+from app.websocket.models import ChatResponse, WebsocketData
 
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
@@ -63,3 +63,10 @@ async def add_docs_links(
         response=response,
         chat_id=chat_id,
     )
+
+
+from .tools import *
+from .handle_agent_response import *
+
+print(dina_agent.response_handlers)
+print(dina_agent._function_tools)
