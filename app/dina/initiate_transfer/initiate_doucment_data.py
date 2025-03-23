@@ -56,6 +56,24 @@ async def initiate_document_data(
 
         return
 
+    if from_tool == "create_appointment" and service_procedure.name == "Вадење на извод од матична книга на родени за полнолетен граѓанин":
+        form_data = FormServiceData(
+            status_message=f"Нема потреба од закажување на термини за побараната услуга. Дали сакате да продолжам директно со уплата?",
+            status=FormServiceStatus.NO_SERVICE
+        )
+
+        await send_websocket_data(
+            websocket_data=WebsocketData(
+                data=form_data.status_message,
+                data_type="no_stream"
+            ),
+            websocket=websocket,
+            response=response,
+            chat_id=chat_id,
+        )
+
+        return
+
     # if the service is supported, create or get existing document and missing fields.
     document, attrs = await form_service.create_init_obj(
         user_email=current_user.email,

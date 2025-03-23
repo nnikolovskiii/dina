@@ -494,8 +494,8 @@ class Agent(Generic[AgentDeps, ResultData]):
 
                                 for tool_response in tool_responses:
                                     print(f"{tool_response.tool_name}")
-                                    if tool_response.tool_name == "initiate_service_application_workflow" or tool_response.tool_name == "list_all_appointments" \
-                                            or tool_response.tool_name == "create_pdf_file":
+                                    if tool_response.tool_name == "create_appointment" or tool_response.tool_name == "list_all_appointments" \
+                                            or tool_response.tool_name == "create_pdf_file" or tool_response.tool_name == "pay_for_service":
                                         yield tool_response
                                         should_exit = True
                                         break

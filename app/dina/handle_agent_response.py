@@ -10,7 +10,7 @@ from app.websocket.models import ChatResponse, WebsocketData
 
 
 
-@dina_agent.handle_response("initiate_service_application_workflow")
+@dina_agent.handle_response("create_appointment")
 async def handle_service_application(
         part_content: any,
         websocket: WebSocket,
@@ -25,9 +25,26 @@ async def handle_service_application(
         chat_id=chat_id,
         response=response,
         current_user=current_user,
-        from_tool="initiate_service_application_workflow"
+        from_tool="create_appointment"
     )
 
+@dina_agent.handle_response("pay_for_service")
+async def handle_service_application(
+        part_content: any,
+        websocket: WebSocket,
+        chat_id: str,
+        response: ChatResponse,
+        current_user: User,
+):
+    await initiate_data_transfer(
+        part_content=part_content,
+        intercept_type="document_data",
+        websocket=websocket,
+        chat_id=chat_id,
+        response=response,
+        current_user=current_user,
+        from_tool="pay_for_service"
+    )
 
 @dina_agent.handle_response("create_pdf_file")
 async def handle_service_application(

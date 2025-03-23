@@ -2,12 +2,11 @@ import enum
 import os
 import logging
 import uuid
-
+from weasyprint import HTML
 from typing import Union, get_origin, get_args, TypeVar, Type, Optional
 
 from bson import ObjectId
 from dotenv import load_dotenv
-from xhtml2pdf import pisa
 
 from app.auth.services.user import UserService
 from pydantic import EmailStr
@@ -92,7 +91,7 @@ class UserFilesService:
         class_type = self.get_doc_class_type(service_type, service_name)
 
         if class_type is None:
-            logging.error(f"There is no such class for the the type: {service_type}")
+            logging.error(f"There is no such class for the type: {service_type}")
 
         document_obj = await self.mdb.get_entry(ObjectId(id), class_type=class_type)
         args = document_obj.model_dump()
@@ -105,18 +104,17 @@ class UserFilesService:
         pdf_buffer = BytesIO()
 
         try:
-            logger.info("Generating PDF from HTML template.")
+            logger.info("Generating PDF from HTML template using WeasyPrint")
 
-            # Convert HTML to PDF using xhtml2pdf
-            pdf_status = pisa.CreatePDF(
-                html_content,
-                dest=pdf_buffer,
-                encoding='UTF-8'
+            # Convert HTML to PDF with WeasyPrint
+            HTML(
+                string=html_content,
+                encoding='utf-8',
+                base_url=os.getcwd()  # For relative resources
+            ).write_pdf(
+                target=pdf_buffer,
+                presentational_hints=True  # Better CSS support
             )
-
-            if pdf_status.err:
-                logger.error("PDF generation failed with errors")
-                raise ValueError("PDF creation failed")
 
             logger.info("PDF generation successful.")
             unique_id = uuid.uuid4().hex

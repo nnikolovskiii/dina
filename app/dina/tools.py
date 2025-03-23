@@ -42,12 +42,29 @@ async def create_pdf_file(
     return task
 
 
+# initiate_service_application_workflow
 @dina_agent.tool
-async def initiate_service_application_workflow(
+async def create_appointment(
         ctx: RunContext[str],
         task: str
 ) -> str:
-    """Do this when the user asks for your help as an assistant for actions that include scheduling and/or payment. This includes creating documents.
+    """Do this when the user asks for you to create an appointment for a service.
+
+    Args:
+        ctx: The context.
+        task: The user task to determine the type of document.
+    Returns:
+        Returns the download link for the document.
+    """
+    return task
+
+
+@dina_agent.tool
+async def pay_for_service(
+        ctx: RunContext[str],
+        task: str
+) -> str:
+    """Do this when the user asks for you to initiate payment for a service.
 
     Args:
         ctx: The context.

@@ -89,34 +89,44 @@ async def service_form(
             ws_data.intercept_type = ws_data.actions[ws_data.next_action]
 
     if ws_data.actions and ws_data.next_action < len(ws_data.actions):
-        if ws_data.intercept_type == "show_appointments":
-            logging.info("Listing all appointments.")
-            await send_websocket_data(
-                websocket_data=WebsocketData(
-                    data="Подоле ви се прикажани сите закажани термини:",
-                    data_type="no_stream",
-                ),
-                websocket=websocket,
-                chat_id=chat_id,
-                response=response
-            )
+        while True:
+            if ws_data.intercept_type == "show_appointments":
+                logging.info("Listing all appointments.")
+                await send_websocket_data(
+                    websocket_data=WebsocketData(
+                        data="Подоле ви се прикажани сите закажани термини:",
+                        data_type="no_stream",
+                    ),
+                    websocket=websocket,
+                    chat_id=chat_id,
+                    response=response
+                )
 
-            await send_websocket_data(
-                websocket_data=WebsocketData(
-                    data=None,
-                    data_type="list",
-                    intercept_type="show_appointments"
-                ),
-                websocket=websocket,
-                chat_id=chat_id,
-            )
-        elif ws_data.intercept_type == "send_email":
-            await email_service.send_email(
-                recipient_email=current_user.email,
-                subject="Успешно поднесено барање",
-                body="Успешно поднесено барање",
-                download_link=form_service_data.download_link
-            )
+                await send_websocket_data(
+                    websocket_data=WebsocketData(
+                        data=None,
+                        data_type="list",
+                        intercept_type="show_appointments"
+                    ),
+                    websocket=websocket,
+                    chat_id=chat_id,
+                )
+            elif ws_data.intercept_type == "send_email":
+                await email_service.send_email(
+                    recipient_email=current_user.email,
+                    subject="Успешно поднесено барање",
+                    body="Успешно поднесено барање",
+                    download_link=form_service_data.download_link
+                )
+            else:
+                break
+
+            ws_data.next_action += 1
+            if ws_data.next_action < len(ws_data.actions):
+                ws_data.intercept_type = ws_data.actions[ws_data.next_action]
+            else:
+                break
+
 
         await initiate_data_transfer(
             intercept_type=ws_data.intercept_type,

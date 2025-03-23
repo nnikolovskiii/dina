@@ -47,22 +47,25 @@ class BirthCertificate(UserDocument):
         <title>Матична книга</title>
         <style>
             @page {{
-                size: A4;
-                margin: 0;
-            }}
-            body {{
-                font-family: 'Arial Unicode MS', sans-serif;
-                margin: 0;
-                padding: 1.6cm 2.0cm;
-                font-size: 14px;
-                position: relative;
-                min-height: 29.7cm;
-                width: 21cm;
-            }}
-            .header {{
-                text-align: center;
-                margin-bottom: 22px;
-            }}
+            size: A4;
+            margin: 0;
+        }}
+        *, *:before, *:after {{
+            box-sizing: border-box;
+        }}
+        body {{
+            font-family: 'Arial Unicode MS', sans-serif;
+            margin: 0;
+            padding: 1.6cm 2.0cm;
+            font-size: 14px;
+            position: relative;
+            min-height: 29.7cm;
+            width: 21cm;
+        }}
+        .header {{
+            text-align: center;
+            margin-bottom: 22px;
+        }}
             .form-number {{
                 font-size: 15px;
                 margin-bottom: 10px;
@@ -94,11 +97,12 @@ class BirthCertificate(UserDocument):
                 margin-top: 6px;
             }}
             .footer {{
-                position: absolute;
-                bottom: 1.8cm;
-                right: 2.0cm;
-                text-align: left;
-            }}
+            position: absolute;
+            bottom: 1.8cm;
+            right: 0;  /* Adjusted to align with content area */
+            text-align: left;
+            padding-right: 2.0cm; /* Maintain visual spacing */
+        }}
             .signature-line {{
                 width: 220px;
                 border-top: 1px solid #000;

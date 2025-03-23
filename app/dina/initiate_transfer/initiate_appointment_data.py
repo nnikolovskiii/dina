@@ -28,6 +28,16 @@ async def initiate_appointment_data(
         other_existing_cols_vals={"service_type": form_service_data.service_type}
     )
 
+    if "appointment" in attrs:
+        attrs['appointment'] = {
+            "type": "dropdown",
+            "value": "",
+            "options": ["08:00 часот, 10.03.2025", "09:00 часот, 10.03.2025",
+                        "10:00 часот, 10.03.2025",
+                        "08:00 часот, 11.03.2025", "15:00 часот, 11.03.2025",
+                        "15:00 часот, 12.03.2025"]
+        }
+
     new_ws_data = WebsocketData(
         data=FormServiceData(
             form_data=attrs,
@@ -76,16 +86,6 @@ async def initiate_appointment_data(
             chat_id=chat_id,
             single=True
         )
-
-        # TODO: This should not be hardcoded
-        attrs['appointment'] = {
-            "type": "dropdown",
-            "value": "",
-            "options": ["08:00 часот, 10.03.2025", "09:00 часот, 10.03.2025",
-                        "10:00 часот, 10.03.2025",
-                        "08:00 часот, 11.03.2025", "15:00 часот, 11.03.2025",
-                        "15:00 часот, 12.03.2025"]
-        }
 
     print("Inside appointment_data", new_ws_data)
 
