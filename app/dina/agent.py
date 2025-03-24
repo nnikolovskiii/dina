@@ -8,6 +8,9 @@ from app.auth.models.user import User
 from app.pydantic_ai_agent.pydantic_agent import Agent
 
 
+# tool_response.tool_name == "create_appointment" or tool_response.tool_name == "list_all_appointments" \
+#                                             or tool_response.tool_name == "create_pdf_file" or tool_response.tool_name == "pay_for_service":
+
 def create_dina_agent():
     from .tools import create_appointment, pay_for_service, get_service_info, list_all_appointments, create_pdf_file
     from .handle_agent_response import handle_create_appointment, handle_pay_for_service, handle_create_pdf_file, \
@@ -44,7 +47,8 @@ def create_dina_agent():
         extra_info_handlers={
             "get_service_info": add_docs_links
         },
-        form_handling=service_form
+        form_handling=service_form,
+        early_break_tools={"create_appointment", "list_all_appointments", "create_pdf_file", "pay_for_service"}
     )
 
     dina_agent.api_key = api_key

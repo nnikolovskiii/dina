@@ -122,6 +122,7 @@ class Agent(Generic[AgentDeps, ResultData]):
             response_handlers: dict[str, Callable] = None,
             extra_info_handlers: dict[str, Callable] = None,
             form_handling: Callable = None,
+            early_break_tools: set[str] = None,
     ):
         """Create an agent.
 
@@ -181,6 +182,7 @@ class Agent(Generic[AgentDeps, ResultData]):
         self.response_handlers: Dict[str, Callable] = response_handlers if response_handlers is not None else {}
         self.extra_info_handlers: Dict[str, Callable] = extra_info_handlers if extra_info_handlers is not None else {}
         self.form_handling = form_handling if form_handling is not None else lambda: None
+        self.early_break_tools = early_break_tools if early_break_tools is not None else set()
 
     def handle_response(self, tool_name: str):
         """Instance-specific response handler decorator"""
@@ -498,8 +500,7 @@ class Agent(Generic[AgentDeps, ResultData]):
 
                                 for tool_response in tool_responses:
                                     print(f"{tool_response.tool_name}")
-                                    if tool_response.tool_name == "create_appointment" or tool_response.tool_name == "list_all_appointments" \
-                                            or tool_response.tool_name == "create_pdf_file" or tool_response.tool_name == "pay_for_service":
+                                    if tool_response.tool_name in self.early_break_tools:
                                         yield tool_response
                                         should_exit = True
                                         break
