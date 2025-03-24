@@ -195,6 +195,6 @@ def _get_form_type(
         actions.append("send_email")
 
     if from_tool == "create_pdf_file":
-        data_type = "form1"
+        data_type = "form"
 
     return actions, data_type

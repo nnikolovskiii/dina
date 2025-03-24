@@ -18,8 +18,8 @@ from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
 import json
 
+from app.pydantic_ai_agent.pydantic_agent import Agent
 from app.websocket.models import WebsocketData, ChatResponse
-from app.dina.handle_request.service_form import service_form
 from app.websocket.utils import send_chat_id, send_websocket_data, get_chat_id_and_message, get_history
 
 logging.basicConfig(level=logging.DEBUG)
@@ -34,7 +34,6 @@ router = APIRouter()
 mdb_dep = Annotated[MongoDBDatabase, Depends(get_mongo_db)]
 
 
-# the websocket_endpoint is pretty much good
 @router.websocket("/")
 async def websocket_endpoint(
         websocket: WebSocket,
@@ -44,6 +43,8 @@ async def websocket_endpoint(
     await websocket.accept()
     while True:
         try:
+            agent = container.agent()
+
             ws_data = await websocket.receive_text()
             ws_data = json.loads(ws_data)
             received_data = WebsocketData(**ws_data)
@@ -73,26 +74,17 @@ async def websocket_endpoint(
                         message=message,
                         message_history=message_history,
                         chat_id=chat_id,
-                        response=response
+                        response=response,
+                        agent=agent,
                     )
 
-                # TODO: make this decoupled from service_form
                 elif received_data.data_type == "form":
-                    await service_form(
+                    await agent.form_handling(
                         ws_data=received_data,
                         websocket=websocket,
                         chat_id=chat_id,
                         current_user=current_user,
                         response=response,
-                    )
-
-                elif received_data.data_type == "form1":
-                    await service_form(
-                        ws_data=received_data,
-                        websocket=websocket,
-                        chat_id=chat_id,
-                        response=response,
-                        current_user=current_user,
                     )
 
                 if response.text != "":
@@ -127,11 +119,11 @@ async def chat(
         current_user: User,
         websocket: WebSocket,
         message: str,
+        agent: Agent,
         message_history: list[ModelRequest | ModelResponse] | None,
         chat_id: str,
         response: Optional[ChatResponse] = None,
 ):
-    agent = container.agent()
     async with agent.run_stream(message, deps=current_user,
                                 message_history=message_history) as result:
         # if it is a stream result
@@ -160,7 +152,6 @@ async def chat(
                     )
 
 
-        # if it is a tool_calling
         elif isinstance(result, ToolReturnPart):
             part = result
             print("Part: ", part)

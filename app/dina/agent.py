@@ -13,6 +13,7 @@ def create_dina_agent():
     from .handle_agent_response import handle_create_appointment, handle_pay_for_service, handle_create_pdf_file, \
         handle_list_all_appointments
     from .extra_info import add_docs_links
+    from app.dina.handle_request.service_form import service_form
 
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
@@ -42,7 +43,8 @@ def create_dina_agent():
         },
         extra_info_handlers={
             "get_service_info": add_docs_links
-        }
+        },
+        form_handling=service_form
     )
 
     dina_agent.api_key = api_key

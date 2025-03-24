@@ -121,6 +121,7 @@ class Agent(Generic[AgentDeps, ResultData]):
             end_strategy: EndStrategy = 'early',
             response_handlers: dict[str, Callable] = None,
             extra_info_handlers: dict[str, Callable] = None,
+            form_handling: Callable = None,
     ):
         """Create an agent.
 
@@ -179,6 +180,7 @@ class Agent(Generic[AgentDeps, ResultData]):
         self._result_validators = []
         self.response_handlers: Dict[str, Callable] = response_handlers if response_handlers is not None else {}
         self.extra_info_handlers: Dict[str, Callable] = extra_info_handlers if extra_info_handlers is not None else {}
+        self.form_handling = form_handling if form_handling is not None else lambda: None
 
     def handle_response(self, tool_name: str):
         """Instance-specific response handler decorator"""
