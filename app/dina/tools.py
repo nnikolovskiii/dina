@@ -2,19 +2,11 @@ import asyncio
 from typing import List, Tuple
 
 from pydantic_ai import RunContext
-from app.container import container
-from app.dina.agent import dina_agent
 from app.dina.models.service_procedure import ServiceProcedure, ServiceType
 from app.dina.pipelines.info_retriever import InfoRetriever, ServiceIds
 from app.llms.models import ChatLLM
 
 
-@dina_agent.system_prompt
-def add_the_users_name(ctx: RunContext[str]) -> str:
-    return f"The user's name is {ctx.deps.full_name}."
-
-
-@dina_agent.tool
 async def list_all_appointments(
         ctx: RunContext[str],
 ):
@@ -26,7 +18,6 @@ async def list_all_appointments(
     """
 
 
-@dina_agent.tool
 async def create_pdf_file(
         ctx: RunContext[str],
         task: str
@@ -42,8 +33,6 @@ async def create_pdf_file(
     return task
 
 
-# initiate_service_application_workflow
-@dina_agent.tool
 async def create_appointment(
         ctx: RunContext[str],
         task: str
@@ -59,7 +48,6 @@ async def create_appointment(
     return task
 
 
-@dina_agent.tool
 async def pay_for_service(
         ctx: RunContext[str],
         task: str
@@ -75,7 +63,6 @@ async def pay_for_service(
     return task
 
 
-@dina_agent.tool
 async def get_service_info(
         ctx: RunContext[str],
         question: str
@@ -86,6 +73,7 @@ async def get_service_info(
         ctx: The context.
         question: The user question from which relevant information is retrieved.
     """
+    from app.container import container
     chat_service = container.chat_service()
     mdb = container.mdb()
 

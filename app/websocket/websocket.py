@@ -13,6 +13,7 @@ from app.auth.models.user import User
 import logging
 
 from app.chat.models import Message, Chat
+from app.container import container
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.singletons import get_mongo_db
 import json
@@ -130,9 +131,9 @@ async def chat(
         chat_id: str,
         response: Optional[ChatResponse] = None,
 ):
-    from app.dina.agent import dina_agent
-    async with dina_agent.run_stream(message, deps=current_user,
-                                     message_history=message_history) as result:
+    agent = container.agent()
+    async with agent.run_stream(message, deps=current_user,
+                                message_history=message_history) as result:
         # if it is a stream result
         if isinstance(result, Sequence) and len(result) == 2 and isinstance(result[0], StreamedRunResult):
             stream_result, tools_used = result
@@ -148,7 +149,7 @@ async def chat(
                 )
 
             for tool_name, tool_part in tools_used.items():
-                handler = dina_agent.extra_info_handlers.get(tool_name)
+                handler = agent.extra_info_handlers.get(tool_name)
                 if handler:
                     await handler(
                         websocket=websocket,
@@ -166,7 +167,7 @@ async def chat(
             print("Part content: ", part.content)
 
             if hasattr(part, "tool_name"):
-                handler = dina_agent.response_handlers.get(part.tool_name)
+                handler = agent.response_handlers.get(part.tool_name)
                 if handler:
                     await handler(
                         part_content=part.content,
