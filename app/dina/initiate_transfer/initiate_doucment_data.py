@@ -29,7 +29,26 @@ async def initiate_document_data(
 
     # determine the service using AI
     service_type_response = await determine_service_type(task=task)
+    print(service_type_response)
     service_procedure = await mdb.get_entry(id=ObjectId(service_type_response.service_id), class_type=ServiceProcedure)
+    if service_procedure is None:
+        logging.info(f"There exists no service for task: {task}")
+        form_data = FormServiceData(
+            status_message=f"Не поддржуваме такво барање. Треба да внесете валидни услуги на институциите.",
+            status=FormServiceStatus.NO_SERVICE
+        )
+
+        await send_websocket_data(
+            websocket_data=WebsocketData(
+                data=form_data.status_message,
+                data_type="no_stream"
+            ),
+            websocket=websocket,
+            response=response,
+            chat_id=chat_id,
+        )
+
+        return
 
     class_type = user_files_service.get_doc_class_type(
         service_type=service_procedure.service_type,

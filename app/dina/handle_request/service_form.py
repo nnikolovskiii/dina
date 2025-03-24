@@ -112,12 +112,13 @@ async def service_form(
                     chat_id=chat_id,
                 )
             elif ws_data.intercept_type == "send_email":
-                await email_service.send_email(
-                    recipient_email=current_user.email,
-                    subject="Успешно поднесено барање",
-                    body="Успешно поднесено барање",
-                    download_link=form_service_data.download_link
-                )
+                pass
+                # await email_service.send_email(
+                #     recipient_email=current_user.email,
+                #     subject="Успешно поднесено барање",
+                #     body="Успешно поднесено барање",
+                #     download_link=form_service_data.download_link
+                # )
             else:
                 break
 
