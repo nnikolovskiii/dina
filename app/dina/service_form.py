@@ -113,12 +113,12 @@ async def service_form(
                 )
             elif ws_data.intercept_type == "send_email":
                 pass
-                # await email_service.send_email(
-                #     recipient_email=current_user.email,
-                #     subject="Успешно поднесено барање",
-                #     body="Успешно поднесено барање",
-                #     download_link=form_service_data.download_link
-                # )
+                await email_service.send_email(
+                    recipient_email=current_user.email,
+                    subject="Успешно поднесено барање",
+                    body="Успешно поднесено барање",
+                    download_link=form_service_data.download_link
+                )
             else:
                 break
 
