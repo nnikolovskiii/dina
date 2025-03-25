@@ -2,11 +2,11 @@ from datetime import datetime
 from typing import Optional
 
 from app.auth.models.user import GenderEnum
-from app.chat_forms.templates.doc_template import UserDocument
+from app.dina.pdf_templates.doc_template import UserDocument
 
 import enum
 
-from app.chat_forms.templates.driver_licnece import OtherLanguages
+from app.dina.pdf_templates.driver_licnece import OtherLanguages
 
 
 class SubmissionReason(str, enum.Enum):

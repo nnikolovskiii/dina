@@ -28,7 +28,6 @@ class Container(containers.DeclarativeContainer):
     mdb = providers.Singleton(MongoDBDatabase)
     llm_factory = providers.Singleton(LLMFactory)
 
-
     fernet = providers.Singleton(create_fernet)
 
     chat_service = providers.Factory(
@@ -48,7 +47,8 @@ class Container(containers.DeclarativeContainer):
         mdb=mdb,
         fernet=fernet
     )
-
+    from app.dina.agent import create_dina_agent
+    agent = providers.Factory(create_dina_agent)
     password_service = providers.Factory(
         PasswordService,
         mdb=mdb,

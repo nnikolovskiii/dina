@@ -8,8 +8,8 @@ from bson import ObjectId
 from app.auth.services.user import UserService
 from pydantic import EmailStr
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
-from app.chat_forms.templates.driver_licnece import DriverLicence
-from app.chat_forms.templates.persoal_Id import PersonalID
+from app.dina.pdf_templates.driver_licnece import DriverLicence
+from app.dina.pdf_templates.persoal_Id import PersonalID
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)

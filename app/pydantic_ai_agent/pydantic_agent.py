@@ -104,21 +104,25 @@ class Agent(Generic[AgentDeps, ResultData]):
     _override_model: _utils.Option[models.Model] = field(default=None, repr=False)
 
     def __init__(
-        self,
-        model: models.Model | models.KnownModelName | None = None,
-        *,
-        result_type: type[ResultData] = str,
-        system_prompt: str | Sequence[str] = (),
-        deps_type: type[AgentDeps] = NoneType,
-        name: str | None = None,
-        model_settings: ModelSettings | None = None,
-        retries: int = 1,
-        result_tool_name: str = 'final_result',
-        result_tool_description: str | None = None,
-        result_retries: int | None = None,
-        tools: Sequence[Tool[AgentDeps] | ToolFuncEither[AgentDeps, ...]] = (),
-        defer_model_check: bool = False,
-        end_strategy: EndStrategy = 'early',
+            self,
+            model: models.Model | models.KnownModelName | None = None,
+            *,
+            result_type: type[ResultData] = str,
+            system_prompt: str | Sequence[str] = (),
+            deps_type: type[AgentDeps] = NoneType,
+            name: str | None = None,
+            model_settings: ModelSettings | None = None,
+            retries: int = 1,
+            result_tool_name: str = 'final_result',
+            result_tool_description: str | None = None,
+            result_retries: int | None = None,
+            tools: Sequence[Tool[AgentDeps] | ToolFuncEither[AgentDeps, ...]] = (),
+            defer_model_check: bool = False,
+            end_strategy: EndStrategy = 'early',
+            response_handlers: dict[str, Callable] = None,
+            extra_info_handlers: dict[str, Callable] = None,
+            form_handling: Callable = None,
+            early_break_tools: set[str] = None,
     ):
         """Create an agent.
 
@@ -175,8 +179,10 @@ class Agent(Generic[AgentDeps, ResultData]):
         self._system_prompt_functions = []
         self._max_result_retries = result_retries if result_retries is not None else retries
         self._result_validators = []
-        self.response_handlers: Dict[str, Callable] = {}
-        self.extra_info_handlers: Dict[str, Callable] = {}
+        self.response_handlers: Dict[str, Callable] = response_handlers if response_handlers is not None else {}
+        self.extra_info_handlers: Dict[str, Callable] = extra_info_handlers if extra_info_handlers is not None else {}
+        self.form_handling = form_handling if form_handling is not None else lambda: None
+        self.early_break_tools = early_break_tools if early_break_tools is not None else set()
 
     def handle_response(self, tool_name: str):
         """Instance-specific response handler decorator"""
@@ -207,15 +213,15 @@ class Agent(Generic[AgentDeps, ResultData]):
         return decorator
 
     async def run(
-        self,
-        user_prompt: str,
-        *,
-        message_history: list[_messages.ModelMessage] | None = None,
-        model: models.Model | models.KnownModelName | None = None,
-        deps: AgentDeps = None,
-        model_settings: ModelSettings | None = None,
-        usage_limits: UsageLimits | None = None,
-        infer_name: bool = True,
+            self,
+            user_prompt: str,
+            *,
+            message_history: list[_messages.ModelMessage] | None = None,
+            model: models.Model | models.KnownModelName | None = None,
+            deps: AgentDeps = None,
+            model_settings: ModelSettings | None = None,
+            usage_limits: UsageLimits | None = None,
+            infer_name: bool = True,
     ) -> result.RunResult[ResultData]:
         """Run the agent with a user prompt in async mode.
 
@@ -250,12 +256,12 @@ class Agent(Generic[AgentDeps, ResultData]):
         new_message_index = len(message_history) if message_history else 0
 
         with _logfire.span(
-            '{agent_name} run {prompt=}',
-            prompt=user_prompt,
-            agent=self,
-            mode_selection=mode_selection,
-            model_name=model_used.name(),
-            agent_name=self.name or 'agent',
+                '{agent_name} run {prompt=}',
+                prompt=user_prompt,
+                agent=self,
+                mode_selection=mode_selection,
+                model_name=model_used.name(),
+                agent_name=self.name or 'agent',
         ) as run_span:
             run_context = RunContext(deps, 0, [], None, model_used)
             messages = await self._prepare_messages(user_prompt, message_history, run_context)
@@ -308,15 +314,15 @@ class Agent(Generic[AgentDeps, ResultData]):
                         handle_span.message = f'handle model response -> {tool_responses_str}'
 
     def run_sync(
-        self,
-        user_prompt: str,
-        *,
-        message_history: list[_messages.ModelMessage] | None = None,
-        model: models.Model | models.KnownModelName | None = None,
-        deps: AgentDeps = None,
-        model_settings: ModelSettings | None = None,
-        usage_limits: UsageLimits | None = None,
-        infer_name: bool = True,
+            self,
+            user_prompt: str,
+            *,
+            message_history: list[_messages.ModelMessage] | None = None,
+            model: models.Model | models.KnownModelName | None = None,
+            deps: AgentDeps = None,
+            model_settings: ModelSettings | None = None,
+            usage_limits: UsageLimits | None = None,
+            infer_name: bool = True,
     ) -> result.RunResult[ResultData]:
         """Run the agent with a user prompt synchronously.
 
@@ -363,15 +369,15 @@ class Agent(Generic[AgentDeps, ResultData]):
 
     @asynccontextmanager
     async def run_stream(
-        self,
-        user_prompt: str,
-        *,
-        message_history: list[_messages.ModelMessage] | None = None,
-        model: models.Model | models.KnownModelName | None = None,
-        deps: AgentDeps = None,
-        model_settings: ModelSettings | None = None,
-        usage_limits: UsageLimits | None = None,
-        infer_name: bool = True,
+            self,
+            user_prompt: str,
+            *,
+            message_history: list[_messages.ModelMessage] | None = None,
+            model: models.Model | models.KnownModelName | None = None,
+            deps: AgentDeps = None,
+            model_settings: ModelSettings | None = None,
+            usage_limits: UsageLimits | None = None,
+            infer_name: bool = True,
     ) -> AsyncIterator[any]:
         """Run the agent with a user prompt in async mode, returning a streamed response.
 
@@ -410,12 +416,12 @@ class Agent(Generic[AgentDeps, ResultData]):
         new_message_index = len(message_history) if message_history else 0
 
         with _logfire.span(
-            '{agent_name} run stream {prompt=}',
-            prompt=user_prompt,
-            agent=self,
-            mode_selection=mode_selection,
-            model_name=model_used.name(),
-            agent_name=self.name or 'agent',
+                '{agent_name} run stream {prompt=}',
+                prompt=user_prompt,
+                agent=self,
+                mode_selection=mode_selection,
+                model_name=model_used.name(),
+                agent_name=self.name or 'agent',
         ) as run_span:
             run_context = RunContext(deps, 0, [], None, model_used)
             messages = await self._prepare_messages(user_prompt, message_history, run_context)
@@ -494,8 +500,7 @@ class Agent(Generic[AgentDeps, ResultData]):
 
                                 for tool_response in tool_responses:
                                     print(f"{tool_response.tool_name}")
-                                    if tool_response.tool_name == "create_appointment" or tool_response.tool_name == "list_all_appointments" \
-                                            or tool_response.tool_name == "create_pdf_file" or tool_response.tool_name == "pay_for_service":
+                                    if tool_response.tool_name in self.early_break_tools:
                                         yield tool_response
                                         should_exit = True
                                         break
@@ -523,10 +528,10 @@ class Agent(Generic[AgentDeps, ResultData]):
 
     @contextmanager
     def override(
-        self,
-        *,
-        deps: AgentDeps | _utils.Unset = _utils.UNSET,
-        model: models.Model | models.KnownModelName | _utils.Unset = _utils.UNSET,
+            self,
+            *,
+            deps: AgentDeps | _utils.Unset = _utils.UNSET,
+            model: models.Model | models.KnownModelName | _utils.Unset = _utils.UNSET,
     ) -> Iterator[None]:
         """Context manager to temporarily override agent dependencies and model.
 
@@ -561,22 +566,26 @@ class Agent(Generic[AgentDeps, ResultData]):
 
     @overload
     def system_prompt(
-        self, func: Callable[[RunContext[AgentDeps]], str], /
-    ) -> Callable[[RunContext[AgentDeps]], str]: ...
+            self, func: Callable[[RunContext[AgentDeps]], str], /
+    ) -> Callable[[RunContext[AgentDeps]], str]:
+        ...
 
     @overload
     def system_prompt(
-        self, func: Callable[[RunContext[AgentDeps]], Awaitable[str]], /
-    ) -> Callable[[RunContext[AgentDeps]], Awaitable[str]]: ...
+            self, func: Callable[[RunContext[AgentDeps]], Awaitable[str]], /
+    ) -> Callable[[RunContext[AgentDeps]], Awaitable[str]]:
+        ...
 
     @overload
-    def system_prompt(self, func: Callable[[], str], /) -> Callable[[], str]: ...
+    def system_prompt(self, func: Callable[[], str], /) -> Callable[[], str]:
+        ...
 
     @overload
-    def system_prompt(self, func: Callable[[], Awaitable[str]], /) -> Callable[[], Awaitable[str]]: ...
+    def system_prompt(self, func: Callable[[], Awaitable[str]], /) -> Callable[[], Awaitable[str]]:
+        ...
 
     def system_prompt(
-        self, func: _system_prompt.SystemPromptFunc[AgentDeps], /
+            self, func: _system_prompt.SystemPromptFunc[AgentDeps], /
     ) -> _system_prompt.SystemPromptFunc[AgentDeps]:
         """Decorator to register a system prompt function.
 
@@ -610,24 +619,28 @@ class Agent(Generic[AgentDeps, ResultData]):
 
     @overload
     def result_validator(
-        self, func: Callable[[RunContext[AgentDeps], ResultData], ResultData], /
-    ) -> Callable[[RunContext[AgentDeps], ResultData], ResultData]: ...
+            self, func: Callable[[RunContext[AgentDeps], ResultData], ResultData], /
+    ) -> Callable[[RunContext[AgentDeps], ResultData], ResultData]:
+        ...
 
     @overload
     def result_validator(
-        self, func: Callable[[RunContext[AgentDeps], ResultData], Awaitable[ResultData]], /
-    ) -> Callable[[RunContext[AgentDeps], ResultData], Awaitable[ResultData]]: ...
+            self, func: Callable[[RunContext[AgentDeps], ResultData], Awaitable[ResultData]], /
+    ) -> Callable[[RunContext[AgentDeps], ResultData], Awaitable[ResultData]]:
+        ...
 
     @overload
-    def result_validator(self, func: Callable[[ResultData], ResultData], /) -> Callable[[ResultData], ResultData]: ...
+    def result_validator(self, func: Callable[[ResultData], ResultData], /) -> Callable[[ResultData], ResultData]:
+        ...
 
     @overload
     def result_validator(
-        self, func: Callable[[ResultData], Awaitable[ResultData]], /
-    ) -> Callable[[ResultData], Awaitable[ResultData]]: ...
+            self, func: Callable[[ResultData], Awaitable[ResultData]], /
+    ) -> Callable[[ResultData], Awaitable[ResultData]]:
+        ...
 
     def result_validator(
-        self, func: _result.ResultValidatorFunc[AgentDeps, ResultData], /
+            self, func: _result.ResultValidatorFunc[AgentDeps, ResultData], /
     ) -> _result.ResultValidatorFunc[AgentDeps, ResultData]:
         """Decorator to register a result validator function.
 
@@ -664,24 +677,26 @@ class Agent(Generic[AgentDeps, ResultData]):
         return func
 
     @overload
-    def tool(self, func: ToolFuncContext[AgentDeps, ToolParams], /) -> ToolFuncContext[AgentDeps, ToolParams]: ...
+    def tool(self, func: ToolFuncContext[AgentDeps, ToolParams], /) -> ToolFuncContext[AgentDeps, ToolParams]:
+        ...
 
     @overload
     def tool(
-        self,
-        /,
-        *,
-        retries: int | None = None,
-        prepare: ToolPrepareFunc[AgentDeps] | None = None,
-    ) -> Callable[[ToolFuncContext[AgentDeps, ToolParams]], ToolFuncContext[AgentDeps, ToolParams]]: ...
+            self,
+            /,
+            *,
+            retries: int | None = None,
+            prepare: ToolPrepareFunc[AgentDeps] | None = None,
+    ) -> Callable[[ToolFuncContext[AgentDeps, ToolParams]], ToolFuncContext[AgentDeps, ToolParams]]:
+        ...
 
     def tool(
-        self,
-        func: ToolFuncContext[AgentDeps, ToolParams] | None = None,
-        /,
-        *,
-        retries: int | None = None,
-        prepare: ToolPrepareFunc[AgentDeps] | None = None,
+            self,
+            func: ToolFuncContext[AgentDeps, ToolParams] | None = None,
+            /,
+            *,
+            retries: int | None = None,
+            prepare: ToolPrepareFunc[AgentDeps] | None = None,
     ) -> Any:
         """Decorator to register a tool function which takes [`RunContext`][pydantic_ai.tools.RunContext] as its first argument.
 
@@ -723,7 +738,7 @@ class Agent(Generic[AgentDeps, ResultData]):
         if func is None:
 
             def tool_decorator(
-                func_: ToolFuncContext[AgentDeps, ToolParams],
+                    func_: ToolFuncContext[AgentDeps, ToolParams],
             ) -> ToolFuncContext[AgentDeps, ToolParams]:
                 # noinspection PyTypeChecker
                 self._register_function(func_, True, retries, prepare)
@@ -736,24 +751,26 @@ class Agent(Generic[AgentDeps, ResultData]):
             return func
 
     @overload
-    def tool_plain(self, func: ToolFuncPlain[ToolParams], /) -> ToolFuncPlain[ToolParams]: ...
+    def tool_plain(self, func: ToolFuncPlain[ToolParams], /) -> ToolFuncPlain[ToolParams]:
+        ...
 
     @overload
     def tool_plain(
-        self,
-        /,
-        *,
-        retries: int | None = None,
-        prepare: ToolPrepareFunc[AgentDeps] | None = None,
-    ) -> Callable[[ToolFuncPlain[ToolParams]], ToolFuncPlain[ToolParams]]: ...
+            self,
+            /,
+            *,
+            retries: int | None = None,
+            prepare: ToolPrepareFunc[AgentDeps] | None = None,
+    ) -> Callable[[ToolFuncPlain[ToolParams]], ToolFuncPlain[ToolParams]]:
+        ...
 
     def tool_plain(
-        self,
-        func: ToolFuncPlain[ToolParams] | None = None,
-        /,
-        *,
-        retries: int | None = None,
-        prepare: ToolPrepareFunc[AgentDeps] | None = None,
+            self,
+            func: ToolFuncPlain[ToolParams] | None = None,
+            /,
+            *,
+            retries: int | None = None,
+            prepare: ToolPrepareFunc[AgentDeps] | None = None,
     ) -> Any:
         """Decorator to register a tool function which DOES NOT take `RunContext` as an argument.
 
@@ -805,11 +822,11 @@ class Agent(Generic[AgentDeps, ResultData]):
             return func
 
     def _register_function(
-        self,
-        func: ToolFuncEither[AgentDeps, ToolParams],
-        takes_ctx: bool,
-        retries: int | None,
-        prepare: ToolPrepareFunc[AgentDeps] | None,
+            self,
+            func: ToolFuncEither[AgentDeps, ToolParams],
+            takes_ctx: bool,
+            retries: int | None,
+            prepare: ToolPrepareFunc[AgentDeps] | None,
     ) -> None:
         """Private utility to register a function as a tool."""
         retries_ = retries if retries is not None else self._default_retries
@@ -879,7 +896,8 @@ class Agent(Generic[AgentDeps, ResultData]):
         )
 
     async def _prepare_messages(
-        self, user_prompt: str, message_history: list[_messages.ModelMessage] | None, run_context: RunContext[AgentDeps]
+            self, user_prompt: str, message_history: list[_messages.ModelMessage] | None,
+            run_context: RunContext[AgentDeps]
     ) -> list[_messages.ModelMessage]:
         try:
             messages = _messages_ctx_var.get()
@@ -904,7 +922,7 @@ class Agent(Generic[AgentDeps, ResultData]):
         return messages
 
     async def _handle_model_response(
-        self, model_response: _messages.ModelResponse, run_context: RunContext[AgentDeps]
+            self, model_response: _messages.ModelResponse, run_context: RunContext[AgentDeps]
     ) -> tuple[_MarkFinalResult[ResultData] | None, list[_messages.ModelRequestPart]]:
         """Process a non-streamed response from the model.
 
@@ -934,7 +952,7 @@ class Agent(Generic[AgentDeps, ResultData]):
             raise exceptions.UnexpectedModelBehavior('Received empty model response')
 
     async def _handle_text_response(
-        self, text: str, run_context: RunContext[AgentDeps]
+            self, text: str, run_context: RunContext[AgentDeps]
     ) -> tuple[_MarkFinalResult[ResultData] | None, list[_messages.ModelRequestPart]]:
         """Handle a plain text response from the model for non-streaming responses."""
         if self._allow_text_result:
@@ -954,7 +972,7 @@ class Agent(Generic[AgentDeps, ResultData]):
             return None, [response]
 
     async def _handle_structured_response(
-        self, tool_calls: list[_messages.ToolCallPart], run_context: RunContext[AgentDeps]
+            self, tool_calls: list[_messages.ToolCallPart], run_context: RunContext[AgentDeps]
     ) -> tuple[_MarkFinalResult[ResultData] | None, list[_messages.ModelRequestPart]]:
         """Handle a structured response containing tool calls from the model for non-streaming responses."""
         assert tool_calls, 'Expected at least one tool call'
@@ -981,10 +999,10 @@ class Agent(Generic[AgentDeps, ResultData]):
         return final_result, parts
 
     async def _process_function_tools(
-        self,
-        tool_calls: list[_messages.ToolCallPart],
-        result_tool_name: str | None,
-        run_context: RunContext[AgentDeps],
+            self,
+            tool_calls: list[_messages.ToolCallPart],
+            result_tool_name: str | None,
+            run_context: RunContext[AgentDeps],
     ) -> list[_messages.ModelRequestPart]:
         """Process function (non-result) tool calls in parallel.
 
@@ -1040,12 +1058,12 @@ class Agent(Generic[AgentDeps, ResultData]):
         return parts
 
     async def _handle_streamed_model_response(
-        self,
-        model_response: models.EitherStreamedResponse,
-        run_context: RunContext[AgentDeps],
+            self,
+            model_response: models.EitherStreamedResponse,
+            run_context: RunContext[AgentDeps],
     ) -> (
-        _MarkFinalResult[models.EitherStreamedResponse]
-        | tuple[_messages.ModelResponse, list[_messages.ModelRequestPart]]
+            _MarkFinalResult[models.EitherStreamedResponse]
+            | tuple[_messages.ModelResponse, list[_messages.ModelRequestPart]]
     ):
         """Process a streamed response from the model.
 
@@ -1110,10 +1128,10 @@ class Agent(Generic[AgentDeps, ResultData]):
             assert_never(model_response)
 
     async def _validate_result(
-        self,
-        result_data: ResultData,
-        run_context: RunContext[AgentDeps],
-        tool_call: _messages.ToolCallPart | None,
+            self,
+            result_data: ResultData,
+            run_context: RunContext[AgentDeps],
+            tool_call: _messages.ToolCallPart | None,
     ) -> ResultData:
         for validator in self._result_validators:
             result_data = await validator.validate(result_data, tool_call, run_context)

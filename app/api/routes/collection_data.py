@@ -1,13 +1,10 @@
 from http import HTTPStatus
 
-from fastapi import HTTPException, APIRouter, Depends
+from fastapi import HTTPException, APIRouter
 from pydantic import BaseModel
 
-from app.api.routes.auth import get_current_user
-from app.auth.models.user import User
 import logging
 
-from app.chat_forms.models.appointment import Appointment
 from app.container import container
 
 logging.basicConfig(level=logging.DEBUG)
