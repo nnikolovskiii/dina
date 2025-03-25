@@ -41,7 +41,7 @@ async def initiate_document_data(
         await send_websocket_data(
             websocket_data=WebsocketData(
                 data=form_data.status_message,
-                data_type="no_stream"
+                data_type="stream"
             ),
             websocket=websocket,
             response=response,
@@ -66,7 +66,7 @@ async def initiate_document_data(
         await send_websocket_data(
             websocket_data=WebsocketData(
                 data=form_data.status_message,
-                data_type="no_stream"
+                data_type="stream"
             ),
             websocket=websocket,
             response=response,
@@ -84,7 +84,7 @@ async def initiate_document_data(
         await send_websocket_data(
             websocket_data=WebsocketData(
                 data=form_data.status_message,
-                data_type="no_stream"
+                data_type="stream"
             ),
             websocket=websocket,
             response=response,
@@ -114,7 +114,7 @@ async def initiate_document_data(
         await send_websocket_data(
             websocket_data=WebsocketData(
                 data=message,
-                data_type="no_stream"
+                data_type="stream"
             ),
             websocket=websocket,
             response=response,

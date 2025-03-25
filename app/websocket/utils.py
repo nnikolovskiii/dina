@@ -55,14 +55,27 @@ async def send_chat_id(chat_id: str, websocket: WebSocket):
     await asyncio.sleep(0)
 
 
+async def start_message(
+        websocket: WebSocket,
+):
+    websocket_data1 = WebsocketData(
+        data=f"<KASTOR>",
+        data_type="stream",
+    )
+    await websocket.send_json(websocket_data1.model_dump())
+    await asyncio.sleep(0)
+
+
 async def send_websocket_data(
         websocket_data: WebsocketData,
         websocket: WebSocket,
         chat_id: str,
         response: Optional[ChatResponse] = None,
-        single: bool = False
+        single: bool = True
 ):
-    # add the message to the response
+    if websocket_data.data_type == "stream" and single:
+        await start_message(websocket)
+
     if response is not None and isinstance(websocket_data.data, str):
         response.text += websocket_data.data
 

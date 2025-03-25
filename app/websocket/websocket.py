@@ -20,7 +20,7 @@ import json
 
 from app.pydantic_ai_agent.pydantic_agent import Agent
 from app.websocket.models import WebsocketData, ChatResponse
-from app.websocket.utils import send_chat_id, send_websocket_data, get_chat_id_and_message, get_history
+from app.websocket.utils import send_chat_id, send_websocket_data, get_chat_id_and_message, get_history, start_message
 
 logging.basicConfig(level=logging.DEBUG)
 from fastapi import APIRouter, Depends
@@ -66,6 +66,7 @@ async def websocket_endpoint(
                             chat_id=chat_id
                         )
                     )
+
 
                     await chat(
                         mdb=mdb,
@@ -129,6 +130,9 @@ async def chat(
         # if it is a stream result
         if isinstance(result, Sequence) and len(result) == 2 and isinstance(result[0], StreamedRunResult):
             stream_result, tools_used = result
+
+            await start_message(websocket)
+
             async for message in stream_result.stream_text(delta=True):
                 await send_websocket_data(
                     websocket_data=WebsocketData(
@@ -138,6 +142,7 @@ async def chat(
                     websocket=websocket,
                     response=response,
                     chat_id=chat_id,
+                    single=False
                 )
 
             for tool_name, tool_part in tools_used.items():

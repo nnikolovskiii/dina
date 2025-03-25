@@ -29,4 +29,5 @@ async def add_docs_links(
         websocket=websocket,
         response=response,
         chat_id=chat_id,
+        single=False
     )

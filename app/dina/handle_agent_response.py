@@ -76,7 +76,7 @@ async def handle_list_all_appointments(
     await send_websocket_data(
         websocket_data=WebsocketData(
             data="Подоле ви се прикажани сите закажани термини:",
-            data_type="no_stream",
+            data_type="stream",
         ),
         websocket=websocket,
         chat_id=chat_id,

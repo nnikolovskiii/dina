@@ -65,7 +65,7 @@ async def initiate_appointment_data(
 
         await send_websocket_data(
             websocket_data=WebsocketData(
-                data_type="no_stream",
+                data_type="stream",
                 data=message,
             ),
             websocket=websocket,
