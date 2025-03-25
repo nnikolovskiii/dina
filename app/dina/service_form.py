@@ -27,6 +27,7 @@ async def service_form(
     user_files_service = container.user_files_service()
     form_service = container.forms_service()
     email_service = container.email_service()
+    mdb = container.mdb()
 
     form_service_data: FormServiceData = FormServiceData(**ws_data.data[0])
     intercept_type = ws_data.intercept_type
@@ -82,6 +83,33 @@ async def service_form(
             chat_id=chat_id,
             response=response
         )
+    elif ws_data.intercept_type == "echo":
+        appointments = await mdb.get_entries(class_type=Appointment,
+                                             doc_filter={"service_type": form_service_data.service_type,
+                                                         "email": current_user.email})
+
+        if len(appointments) == 0:
+            print("Inisde echo", form_service_data.service_name )
+            if form_service_data.service_name  not in no_appointment_services:
+                await send_websocket_data(
+                    websocket_data=WebsocketData(
+                        data="Remind me that I can schedule a timeslot as well.",
+                        data_type="echo",
+                    ),
+                    websocket=websocket,
+                    chat_id=chat_id,
+                    response=response
+                )
+        else:
+            await send_websocket_data(
+                websocket_data=WebsocketData(
+                    data="Tell me that I have also already scheduled an appointment and whether i want to know the details of my appointment.",
+                    data_type="echo",
+                ),
+                websocket=websocket,
+                chat_id=chat_id,
+                response=response
+            )
 
     if ws_data.actions and len(ws_data.actions) > 0:
         ws_data.next_action += 1
@@ -112,13 +140,25 @@ async def service_form(
                     chat_id=chat_id,
                 )
             elif ws_data.intercept_type == "send_email":
-                pass
                 await email_service.send_email(
                     recipient_email=current_user.email,
                     subject="Успешно поднесено барање",
                     body="Успешно поднесено барање",
                     download_link=form_service_data.download_link
                 )
+            elif ws_data.intercept_type == "echo":
+                appointments = await mdb.get_entries(class_type=Appointment, doc_filter={"service_type": form_service_data.service_type, "email": current_user.email})
+
+                if len(appointments) == 0:
+                    await send_websocket_data(
+                        websocket_data=WebsocketData(
+                            data="Remind me that I can schedule an appointment as well.",
+                            data_type="echo",
+                        ),
+                        websocket=websocket,
+                        chat_id=chat_id,
+                        response=response
+                    )
             else:
                 break
 
