@@ -13,54 +13,53 @@ async def list_all_appointments(
     """Lists all user appointments when the user needs them. List them all if a user doesn't know an appointment for a certain service.
 
     :param ctx:
-    :param task:
     :return:
     """
 
 
 async def create_pdf_file(
         ctx: RunContext[str],
-        task: str
+        service: str
 ) -> str:
-    """Do this when the user asks you just to create some type of document and doesn't explicitly ask for an appoitment nor payment.
+    """Do this when the user asks you just to create some type of document for a given service.
 
     Args:
         ctx: The context.
-        task: The user task to determine the type of document.
+        service: The service for which the document is to be created.
     Returns:
         Returns the download link for the document.
     """
-    return task
+    return service
 
 
 async def create_appointment(
         ctx: RunContext[str],
-        task: str
+        service: str
 ) -> str:
     """Do this when the user asks for you to create an appointment for a service.
 
     Args:
         ctx: The context.
-        task: The user task to determine the type of document.
+        service: The service for which the appointment is to be created.
     Returns:
         Returns the download link for the document.
     """
-    return task
+    return service
 
 
 async def pay_for_service(
         ctx: RunContext[str],
-        task: str
+        service: str
 ) -> str:
     """Do this when the user asks for you to initiate payment for a service.
 
     Args:
         ctx: The context.
-        task: The user task to determine the type of document.
+        service: The service for which the payment is to be initiated.
     Returns:
         Returns the download link for the document.
     """
-    return task
+    return service
 
 
 async def get_service_info(

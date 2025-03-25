@@ -16,7 +16,7 @@ async def initiate_document_data(
         websocket: WebSocket,
         chat_id: str,
         response: ChatResponse,
-        task: str,
+        service: str,
         current_user: User,
         from_tool: str,
 ):
@@ -28,11 +28,11 @@ async def initiate_document_data(
     logging.info("Inside tool for creating pdf file for personal id.")
 
     # determine the service using AI
-    service_type_response = await determine_service_type(task=task)
+    service_type_response = await determine_service_type(service=service)
     print(service_type_response)
     service_procedure = await mdb.get_entry(id=ObjectId(service_type_response.service_id), class_type=ServiceProcedure)
     if service_procedure is None:
-        logging.info(f"There exists no service for task: {task}")
+        logging.info(f"There exists no service for task: {service}")
         form_data = FormServiceData(
             status_message=f"Не поддржуваме такво барање. Треба да внесете валидни услуги на институциите.",
             status=FormServiceStatus.NO_SERVICE
@@ -56,7 +56,7 @@ async def initiate_document_data(
     )
 
     if class_type is None:
-        logging.info(f"There exists no service for task: {task}")
+        logging.info(f"There exists no service for task: {service}")
 
         form_data = FormServiceData(
             status_message=f"Се уште не го подржуваме побараниот сервис: {service_procedure.name}",

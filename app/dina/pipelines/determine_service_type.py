@@ -19,8 +19,8 @@ class DetermineServiceType(ChatPipeline):
     def response_type(self) -> str:
         return "models"
 
-    def template(self, task: str, services: List[ServiceProcedure]) -> str:
-        return f"""Your a AI assistant that helps with tasks in institutions in Macedonia. Determine if the below user task aligns with any of the services.
+    def template(self, service: str, services: List[ServiceProcedure]) -> str:
+        return f"""You are an AI assistant that helps provide services in institutions across Macedonia. Determine whether the selected service aligns with those you offer.
         
 If it aligns with a service return:
 {{
@@ -34,15 +34,16 @@ If it does not align with a service return:
     "service_id": null,
 }}
 
-Task from user: {task}
+Selected service from user: 
+{service}
 
-All the services:
+All the services you offer:
 {"\n".join([str(service) for service in services])}
 """
 
 
 # TODO: Make these collections have indexes in order for fetching from db to be faster
-async def determine_service_type(task: str) -> DetermineServiceTypeResponse:
+async def determine_service_type(service: str) -> DetermineServiceTypeResponse:
     chat_service = container.chat_service()
     mdb = container.mdb()
 
@@ -58,5 +59,5 @@ async def determine_service_type(task: str) -> DetermineServiceTypeResponse:
         class_type=ServiceProcedure
     )
 
-    response = await pipeline.execute(task=task, services=available_services, class_type=DetermineServiceTypeResponse)
+    response = await pipeline.execute(service=service, services=available_services, class_type=DetermineServiceTypeResponse)
     return response
