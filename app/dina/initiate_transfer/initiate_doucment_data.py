@@ -106,20 +106,21 @@ async def initiate_document_data(
 
     # if there are missing fields it is not created and uploaded, if they are no missing attrs then proceed.
     if has_document:
-        message = "Веќе имате создадено документ. Ова е линкот до вашиот документ: "
-        di = {document.download_link: service_procedure.service_type}
-        link = get_link_template(di)
-        message += link
+        if from_tool == "create_pdf_file":
+            message = "Веќе имате создадено документ. Ова е линкот до вашиот документ: "
+            di = {document.download_link: service_procedure.service_type}
+            link = get_link_template(di)
+            message += link
 
-        await send_websocket_data(
-            websocket_data=WebsocketData(
-                data=message,
-                data_type="stream"
-            ),
-            websocket=websocket,
-            response=response,
-            chat_id=chat_id,
-        )
+            await send_websocket_data(
+                websocket_data=WebsocketData(
+                    data=message,
+                    data_type="stream"
+                ),
+                websocket=websocket,
+                response=response,
+                chat_id=chat_id,
+            )
 
     else:
         logging.info(f"Not enough information for creating the document for: {service_procedure.service_type}.")
@@ -157,21 +158,33 @@ async def initiate_document_data(
         else:
             from app.dina.initiate_transfer.entrypoint import initiate_data_transfer
 
-            await initiate_data_transfer(
-                intercept_type=actions[0],
-                current_user=current_user,
-                websocket=websocket,
-                chat_id=chat_id,
-                form_service_data=form_data,
-                response=response,
-                ws_data=WebsocketData(
-                    data=form_data,
-                    data_type=data_type,
-                    intercept_type=actions[0],
-                    #TODO: Uneccessary duplicate
-                    actions=actions
+            if from_tool == "create_pdf_file":
+                await send_websocket_data(
+                    websocket_data=WebsocketData(
+                        data=form_data,
+                        data_type="echo_form",
+                        actions=actions,
+                        intercept_type=actions[0]
+                    ),
+                    websocket=websocket,
+                    chat_id=chat_id,
                 )
-            )
+            else:
+                await initiate_data_transfer(
+                    intercept_type=actions[0],
+                    current_user=current_user,
+                    websocket=websocket,
+                    chat_id=chat_id,
+                    form_service_data=form_data,
+                    response=response,
+                    ws_data=WebsocketData(
+                        data=form_data,
+                        data_type=data_type,
+                        intercept_type=actions[0],
+                        #TODO: Uneccessary duplicate
+                        actions=actions
+                    )
+                )
 
 
 def _get_form_type(
@@ -184,9 +197,13 @@ def _get_form_type(
     if not has_document:
         actions.append("document_data")
 
+    if service_name == "Вадење на извод од матична книга на родени за полнолетен граѓанин":
+        actions.append("payment_data")
+        actions.append("send_email")
+
     if from_tool != "create_pdf_file":
         if service_name == "Вадење на извод од матична книга на родени за полнолетен граѓанин":
-            actions.append("payment_data")
+            pass
         else:
             actions.append("appointment_data")
             actions.append("payment_data")
@@ -197,4 +214,6 @@ def _get_form_type(
     if from_tool == "create_pdf_file":
         data_type = "form"
 
+    if from_tool == "create_pdf_file":
+        actions.append("echo")
     return actions, data_type
