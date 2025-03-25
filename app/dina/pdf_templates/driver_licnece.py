@@ -3,7 +3,7 @@ from typing import Optional, List
 
 import enum
 
-from app.chat_forms.templates.doc_template import UserDocument
+from app.dina.pdf_templates.doc_template import UserDocument
 
 
 class SubmissionReason(str, enum.Enum):

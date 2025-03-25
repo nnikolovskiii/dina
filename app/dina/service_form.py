@@ -1,14 +1,14 @@
 import logging
 
 from app.auth.models.user import User
-from app.chat_forms.models.payment_details import PaymentDetails
+from app.dina.models.payment_details import PaymentDetails
 from app.container import container
 from app.dina.initiate_transfer.entrypoint import initiate_data_transfer
 from app.dina.models.form_service_data import FormServiceData
 
 from fastapi import WebSocket
 
-from app.chat_forms.models.appointment import Appointment
+from app.dina.models.appointment import Appointment
 from app.websocket.models import WebsocketData, ChatResponse
 
 logging.basicConfig(level=logging.DEBUG)

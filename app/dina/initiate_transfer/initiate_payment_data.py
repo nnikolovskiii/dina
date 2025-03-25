@@ -1,7 +1,7 @@
 from typing import Optional
 
 from app.auth.models.user import User
-from app.chat_forms.models.payment_details import PaymentDetails
+from app.dina.models.payment_details import PaymentDetails
 from app.container import container
 from app.dina.models.form_service_data import FormServiceData
 from app.websocket.models import WebsocketData
