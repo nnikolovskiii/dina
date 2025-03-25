@@ -197,9 +197,13 @@ def _get_form_type(
     if not has_document:
         actions.append("document_data")
 
+    if service_name == "Вадење на извод од матична книга на родени за полнолетен граѓанин":
+        actions.append("payment_data")
+        actions.append("send_email")
+
     if from_tool != "create_pdf_file":
         if service_name == "Вадење на извод од матична книга на родени за полнолетен граѓанин":
-            actions.append("payment_data")
+            pass
         else:
             actions.append("appointment_data")
             actions.append("payment_data")
@@ -210,5 +214,6 @@ def _get_form_type(
     if from_tool == "create_pdf_file":
         data_type = "form"
 
-    actions.append("echo")
+    if from_tool == "create_pdf_file":
+        actions.append("echo")
     return actions, data_type

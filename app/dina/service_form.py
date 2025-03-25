@@ -140,6 +140,7 @@ async def service_form(
                     chat_id=chat_id,
                 )
             elif ws_data.intercept_type == "send_email":
+                print("inside send email!!!")
                 await email_service.send_email(
                     recipient_email=current_user.email,
                     subject="Успешно поднесено барање",
@@ -150,15 +151,27 @@ async def service_form(
                 appointments = await mdb.get_entries(class_type=Appointment, doc_filter={"service_type": form_service_data.service_type, "email": current_user.email})
 
                 if len(appointments) == 0:
+                    if form_service_data.service_name not in no_appointment_services:
+                        await send_websocket_data(
+                            websocket_data=WebsocketData(
+                                data="Remind me that I can schedule an appointment as well.",
+                                data_type="echo",
+                            ),
+                            websocket=websocket,
+                            chat_id=chat_id,
+                            response=response
+                        )
+                else:
                     await send_websocket_data(
                         websocket_data=WebsocketData(
-                            data="Remind me that I can schedule an appointment as well.",
+                            data="Tell me that I have also already scheduled an appointment and whether i want to know the details of my appointment.",
                             data_type="echo",
                         ),
                         websocket=websocket,
                         chat_id=chat_id,
                         response=response
                     )
+
             else:
                 break
 
