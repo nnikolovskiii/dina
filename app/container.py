@@ -47,8 +47,9 @@ class Container(containers.DeclarativeContainer):
         mdb=mdb,
         fernet=fernet
     )
-    from app.dina.agent import create_dina_agent
-    agent = providers.Factory(create_dina_agent)
+    from app.task_manager.agent import create_company_consultant_agent
+
+    agent = providers.Factory(create_company_consultant_agent)
     password_service = providers.Factory(
         PasswordService,
         mdb=mdb,

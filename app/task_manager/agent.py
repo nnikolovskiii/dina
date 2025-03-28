@@ -1,66 +1,46 @@
 import os
 
 from dotenv import load_dotenv
-from pydantic_ai import RunContext
+from pydantic_ai import Tool, RunContext
 from pydantic_ai.messages import ModelRequest, SystemPromptPart
 
 from app.auth.models.user import User
 from app.pydantic_ai_agent.pydantic_agent import Agent
 
-load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
 
-agent = Agent(
-    'openai:gpt-4o',
-    deps_type=User,
-    retries=1,
-    system_prompt=[
-        "You are a helpful AI assistant that manages tasks, goals and projects. You are a good consultant and expert in managing tasks.",
-        "Your name is Finn"
-    ]
-)
+def create_company_consultant_agent():
+    from app.task_manager.pipelines.company_info_retrieval import fetch_general_company_info
 
-agent.api_key = api_key
+    load_dotenv()
+    api_key = os.getenv("OPENAI_API_KEY")
 
-
-# TODO: Change this to reflect this agent
-def get_system_messages() -> ModelRequest:
-    return ModelRequest(
-        parts=[
-            SystemPromptPart(
-                content='You are a helpful AI assistant that knows how to code and execute commands.',
-                part_kind='system-prompt'
-            )
-        ]
+    # TODO: Try switching it to deepseek
+    company_agent = Agent(
+        'openai:gpt-4o',
+        deps_type=User,
+        retries=1,
+        system_prompt=[
+            "You are an AI assistant that knows about users company and provides helpful information and insights.",
+            "Your name is Finn",
+        ],
+        tools=[
+            Tool(fetch_general_company_info, takes_ctx=True),
+        ],
     )
 
+    company_agent.api_key = api_key
 
-@agent.tool
-async def create_tasks(
-        ctx: RunContext[str],
-        text: str
-):
-    """From the user text creates singular tasks.
-    """
-    from app.task_manager.pipelines.create_task import create_task
-    tasks = await create_task(text=text)
-    return "Tasks are created successfully."
+    @company_agent.system_prompt
+    def add_the_users_name(ctx: RunContext[str]) -> str:
+        return f"The user's name is {ctx.deps.full_name}."
+
+    return company_agent
 
 
-@agent.tool
-async def activity_tracking(
-        ctx: RunContext[str],
-        activity: str
-):
-    """Given the activity from the user it marks tasks as completed or not."""
-    from app.task_manager.pipelines.activity_tracking import activity_tracking
-    return await activity_tracking(activity=activity)
-
-
-@agent.tool
-async def prioritize_tasks(
-        ctx: RunContext[str],
-):
-    """When the user asks explicitly for you to prioritize the tasks."""
-    from app.task_manager.pipelines.prioritize_tasks import prioritize_tasks
-    return await prioritize_tasks()
+# TODO: Need to change this to be defined once, not two times.
+def get_system_messages(user: User) -> ModelRequest:
+    return ModelRequest(
+        parts=[SystemPromptPart(
+            content=            "You are an AI assistant that knows about users company and provides helpful information and insights.",
+            part_kind='system-prompt'),
+            SystemPromptPart(content= "Your name is Finn", part_kind='system-prompt')])

@@ -9,8 +9,8 @@ import logging
 
 from app.container import container
 from app.databases.mongo_db import MongoDBDatabase
-from app.dina.agent import get_system_messages
 from app.dina.models.service_procedure import ServiceProcedureDocument
+from app.task_manager.agent import get_system_messages
 from app.websocket.models import WebsocketData, ChatResponse
 
 logging.basicConfig(level=logging.DEBUG)

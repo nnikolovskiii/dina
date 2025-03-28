@@ -5,6 +5,7 @@ from openai import AsyncOpenAI
 from app.llms.models import StreamChatLLM
 from app.llms.utils import _get_messages_template
 
+
 class OpenAIStreamChat(StreamChatLLM):
 
     async def generate(self, message: str, system_message: Optional[str] = "You are helpful AI assistant.",
@@ -26,4 +27,3 @@ class OpenAIStreamChat(StreamChatLLM):
         async for chunk in stream:
             if chunk.choices[0].delta.content is not None:
                 yield chunk.choices[0].delta.content
-
