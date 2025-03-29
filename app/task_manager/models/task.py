@@ -13,6 +13,7 @@ class Task(MongoEntry):
     finished: bool = False
     collaborators: Optional[list[str]] = []
     due_date: Optional[datetime] = None
+    email: Optional[EmailStr] = None
 
 
 class Goal(MongoEntry):

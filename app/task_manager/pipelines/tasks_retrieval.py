@@ -3,7 +3,7 @@ from datetime import datetime
 from pydantic_ai import RunContext
 
 from app.container import container
-from app.task_manager.models.task import TaskCollection
+from app.task_manager.models.task import TaskCollection, Task
 
 
 async def tasks_retrieval(
@@ -17,20 +17,12 @@ async def tasks_retrieval(
 
     mdb = container.mdb()
 
-    li = await mdb.get_entries(TaskCollection, doc_filter={"email": ctx.deps.email})
+    li = await mdb.get_entries(Task, doc_filter={"email": ctx.deps.email})
+
+    print(li)
 
     if len(li) == 0:
-        task_collection = TaskCollection(
-            email=ctx.deps.email,
-            tasks_content="",
-            tasks_finished_content="",
-            last_modified=datetime.now()
-        )
-        await mdb.add_entry(task_collection)
-    else:
-        task_collection = li[0]
+        return f"You don't have any tasks yet that are {"finished" if finished else "ongoing"}."
 
-    if finished:
-        return "Here is the whole information about all finished tasks:\n\n" + task_collection.tasks_finished_content
-    else:
-        return "Here is the whole information about all tasks:\n\n" + task_collection.tasks_content
+    return f"Here is the whole information about all {"finished" if finished else "ongoing"} tasks:\n\n" + "\n".join(
+        map(str, li))
