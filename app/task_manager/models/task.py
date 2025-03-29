@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import EmailStr
 
 from app.databases.mongo_db import MongoEntry
@@ -17,3 +19,9 @@ class Goal(MongoEntry):
 class Activity(MongoEntry):
     description: str
     user_email: EmailStr
+
+
+class TaskCollection(MongoEntry):
+    tasks_content: str
+    last_modified: datetime
+    email: EmailStr

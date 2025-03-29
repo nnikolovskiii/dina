@@ -10,6 +10,8 @@ from app.pydantic_ai_agent.pydantic_agent import Agent
 
 def create_company_consultant_agent():
     from app.task_manager.pipelines.company_info_retrieval import fetch_general_company_info
+    from app.task_manager.pipelines.tasks_retrieval import tasks_retrieval
+    from app.task_manager.pipelines.update_tasks import update_tasks
 
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
@@ -25,6 +27,8 @@ def create_company_consultant_agent():
         ],
         tools=[
             Tool(fetch_general_company_info, takes_ctx=True),
+            Tool(update_tasks, takes_ctx=True),
+            Tool(tasks_retrieval, takes_ctx=True),
         ],
     )
 
@@ -41,6 +45,6 @@ def create_company_consultant_agent():
 def get_system_messages(user: User) -> ModelRequest:
     return ModelRequest(
         parts=[SystemPromptPart(
-            content=            "You are an AI assistant that knows about users company and provides helpful information and insights.",
+            content="You are an AI assistant that knows about users company and provides helpful information and insights.",
             part_kind='system-prompt'),
-            SystemPromptPart(content= "Your name is Finn", part_kind='system-prompt')])
+            SystemPromptPart(content="Your name is Finn", part_kind='system-prompt')])
