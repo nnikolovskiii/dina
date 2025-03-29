@@ -28,9 +28,9 @@ class OpenAIChat(ChatLLM):
             response = await client.chat.completions.create(
                 model=self.chat_model_config.name,
                 messages=messages,
-                max_tokens=500
             )
             logger.info("Successfully received response from OpenAI API")
+            print(response.choices[0].message.content)
             return response.choices[0].message.content
 
         except Exception as e:

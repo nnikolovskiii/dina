@@ -21,9 +21,11 @@ def create_company_consultant_agent():
         'openai:gpt-4o',
         deps_type=User,
         retries=1,
+        # end_strategy="exhaustive",
         system_prompt=[
             "You are an AI assistant that knows about users company and provides helpful information and insights.",
             "Your name is Finn",
+            "When marking tasks as finished remove them from ongoing tasks."
         ],
         tools=[
             Tool(fetch_general_company_info, takes_ctx=True),
