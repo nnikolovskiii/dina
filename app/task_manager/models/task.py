@@ -17,7 +17,9 @@ class Task(MongoEntry):
 
 
 class Goal(MongoEntry):
-    description: str
+    title: Optional[str] = None
+    description: Optional[str] = None
+    due_date: Optional[datetime] = None
 
 
 class Activity(MongoEntry):

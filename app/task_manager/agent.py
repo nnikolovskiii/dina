@@ -11,7 +11,6 @@ from app.pydantic_ai_agent.pydantic_agent import Agent
 def create_company_consultant_agent():
     from app.task_manager.pipelines.company_info_retrieval import fetch_general_company_info
     from app.task_manager.pipelines.tasks_retrieval import tasks_retrieval
-    from app.task_manager.pipelines.update_tasks import update_tasks
     from app.task_manager.pipelines.create_task import create_tasks
     from app.task_manager.pipelines.delete_tasks import complete_tasks
 
@@ -31,7 +30,6 @@ def create_company_consultant_agent():
         ],
         tools=[
             Tool(fetch_general_company_info, takes_ctx=True),
-            Tool(update_tasks, takes_ctx=True),
             Tool(tasks_retrieval, takes_ctx=True),
             Tool(create_tasks, takes_ctx=True),
             Tool(complete_tasks, takes_ctx=False),

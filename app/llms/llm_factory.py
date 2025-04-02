@@ -2,6 +2,7 @@ from typing import TypeVar, Type
 
 from pydantic import BaseModel
 
+from app.llms.chat.anthropic_chat import AnthropicChat
 from app.llms.chat.inference_client_chat import InferenceClientChat
 from app.llms.chat.ollama_chat import OllamaChat
 from app.llms.chat.openai_chat import OpenAIChat
@@ -26,6 +27,8 @@ class LLMFactory(BaseModel):
             return InferenceClientChat(chat_api=chat_api, chat_model_config=chat_model_config)
         elif chat_api.type == "ollama":
             return OllamaChat(chat_api=chat_api, chat_model_config=chat_model_config)
+        elif chat_api.type == "anthropic":
+            return AnthropicChat(chat_api=chat_api, chat_model_config=chat_model_config)
         else:
             return OpenAIChat(chat_api=chat_api, chat_model_config=chat_model_config)
 
