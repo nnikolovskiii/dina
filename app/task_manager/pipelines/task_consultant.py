@@ -5,12 +5,12 @@ from typing import List
 from pydantic_ai import RunContext
 
 from app.container import container
-from app.llms.models import ChatLLM
-from app.pipelines.pipeline import ChatPipeline
+from app.llms.models import ChatLLM, StreamChatLLM
+from app.pipelines.pipeline import ChatPipeline, StreamPipeline
 from app.task_manager.models.task import Task
 
 
-class TaskCreation(ChatPipeline):
+class TaskCreation(StreamPipeline):
     @property
     def response_type(self) -> str:
         return "dict"
@@ -59,15 +59,16 @@ async def create_tasks(
     """
     mdb = container.mdb()
     chat_service = container.chat_service()
-    chat_model = await chat_service.get_model(model_name="claude-3-haiku-20240307", class_type=ChatLLM)
+    chat_model = await chat_service.get_model(model_name="claude-3-haiku-20240307", class_type=StreamChatLLM)
     retriever_pipeline = TaskCreation(chat_model)
 
-    response = await retriever_pipeline.execute(
+
+    async for elem in retriever_pipeline.execute(
         text=text,
         curr_date=datetime.now()
-    )
+    ):
+        print(elem)
 
-    print(response)
 
 
 asyncio.run(create_tasks("""Enable edit, delete for chat sessions in chat history\n- do it for backend and frontend\n- when delete is clicked the Chat and all Messages are deleted as well\n- assigned to Dimitar Pavlovski\n\nAdd diagrams showcasing the inner workings of agents to clients\n\nAdding a page on how much it costs to incorporate this in a clients company.\n- api costs primarily\n\nFix the message/response saving in db. Enable multiple responses to be saved in db.\n\nmake the get_system prompts in websocket/utils flexible to the agent and not hardcoded.\n\nWrite the frontend code for the landing page\n\nSystem diagram for task app 1st version by 29.03"""))

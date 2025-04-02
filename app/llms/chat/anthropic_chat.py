@@ -3,6 +3,7 @@ from typing import List, Dict, Optional
 
 from anthropic import AsyncAnthropic
 from app.llms.models import ChatLLM
+from app.llms.utils import _get_messages_template
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -18,10 +19,7 @@ class AnthropicChat(ChatLLM):
 
         client = AsyncAnthropic(api_key=self.chat_api.api_key)
 
-        messages = []
-        if history:
-            messages.extend(history)
-        messages.append({"role": "user", "content": message})
+        messages = _get_messages_template(message, history)
 
         try:
             response = await client.messages.create(
