@@ -26,7 +26,7 @@ class AnthropicChat(ChatLLM):
                 model=self.chat_model_config.name,
                 system=system_message,
                 messages=messages,
-                max_tokens=1024
+                max_tokens=40000,
             )
 
             logger.info("Successfully received response from Claude API")
