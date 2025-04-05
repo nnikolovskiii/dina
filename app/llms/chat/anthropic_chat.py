@@ -27,10 +27,10 @@ class AnthropicChat(ChatLLM):
                 system=system_message,
                 messages=messages,
                 max_tokens=40000,
+                stream=False
             )
 
             logger.info("Successfully received response from Claude API")
-            print(response.content[0].text)
             return response.content[0].text
 
         except Exception as e:

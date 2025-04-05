@@ -10,6 +10,7 @@ from app.llms.embedders.openai_embedder import OpenAIEmbeddingModel
 from app.llms.models import ChatLLM, StreamChatLLM, EmbeddingModel, Reranker, BaseLLM
 from app.llms.rerankers.cohere_reranker import CohereReranker
 from app.llms.rerankers.nim_reranker import NimReranker
+from app.llms.stream_chat.anthropic_stream import AnthropicStreamChat
 from app.llms.stream_chat.inference_client_stream import InferenceClientStreamChat
 from app.llms.stream_chat.openai_stream import OpenAIStreamChat
 from app.chat.models import ModelApi, ModelConfig
@@ -39,6 +40,8 @@ class LLMFactory(BaseModel):
     ) -> StreamChatLLM:
         if chat_api.type == "hugging_face":
             return InferenceClientStreamChat(chat_api=chat_api, chat_model_config=chat_model_config)
+        elif chat_api.type == "anthropic":
+            return AnthropicStreamChat(chat_api=chat_api, chat_model_config=chat_model_config)
         else:
             return OpenAIStreamChat(chat_api=chat_api, chat_model_config=chat_model_config)
 

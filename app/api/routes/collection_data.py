@@ -11,14 +11,15 @@ logging.basicConfig(level=logging.DEBUG)
 
 router = APIRouter()
 
-class PageDto(BaseModel):
+
+class CollectionMetadata(BaseModel):
     collection_name: str
+
 
 @router.post("/get_collection_data_page/{page}", status_code=HTTPStatus.CREATED)
 async def get_collection_data_page(
-        page_dto: PageDto,
+        page_dto: CollectionMetadata,
         page: int = 1,
-        # current_user: User = Depends(get_current_user)
 ):
     mdb = container.mdb()
 
