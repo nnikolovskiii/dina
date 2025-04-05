@@ -242,50 +242,46 @@ class MongoDBDatabase:
 
     async def update_entry(
             self,
-            entity: MongoEntry,
+            obj_id: str,
             collection_name: Optional[str] = None,
-            update: Optional[Dict[str, Any]] = None
+            update: Optional[Dict[str, Any]] = None,
+            entity: Optional[MongoEntry] = None
     ) -> bool:
+        """
+        Update an entry in the database.
+
+        Args:
+            obj_id: The ID of the object to update
+            collection_name: Name of the collection (defaults to entity's class name if entity is provided)
+            update: Dictionary of fields to update
+            entity: Optional entity to use for the update (alternative to update dict)
+
+        Returns:
+            bool: True if the document was modified, False otherwise
+        """
+        if entity is None and update is None:
+            raise ValueError("Either entity or update must be provided")
+
         collection_name = entity.__class__.__name__ if collection_name is None else collection_name
         collection = self.db[collection_name]
 
-        entity_dict = entity.model_dump()
-        if "id" in entity_dict:
-            entity_dict.pop("id")
+        update_data = {}
 
-        if update:
-            entity_dict.update(update)
+        if entity is not None:
+            entity_dict = entity.model_dump()
+            if "id" in entity_dict:
+                entity_dict.pop("id")
+            update_data.update(entity_dict)
+
+        if update is not None:
+            update_data.update(update)
 
         result = await collection.update_one(
-            {"_id": ObjectId(entity.id)},
-            {"$set": entity_dict}
+            {"_id": ObjectId(obj_id)},
+            {"$set": update_data}
         )
 
         return result.modified_count > 0
-
-    async def update_entry(
-            self,
-            entity: MongoEntry,
-            collection_name: Optional[str] = None,
-            update: Optional[Dict[str, Any]] = None
-    ) -> bool:
-        collection_name = entity.__class__.__name__ if collection_name is None else collection_name
-        collection = self.db[collection_name]
-
-        entity_dict = entity.model_dump()
-        if "id" in entity_dict:
-            entity_dict.pop("id")
-
-        if update:
-            entity_dict.update(update)
-
-        result = await collection.update_one(
-            {"_id": ObjectId(entity.id)},
-            {"$set": entity_dict}
-        )
-
-        return result.modified_count > 0
-
     async def delete_collection(self, collection_name: str) -> bool:
         if collection_name not in await self.db.list_collection_names():
             logging.info(f"Collection '{collection_name}' does not exist.")
@@ -293,16 +289,44 @@ class MongoDBDatabase:
         await self.db[collection_name].drop()
         return True
 
+    from typing import Optional, Type, TypeVar
+    from bson import ObjectId
+
+    T = TypeVar('T')
+
     async def delete_entity(
             self,
-            entity: MongoEntry,
-            collection_name: Optional[str] = None
+            obj_id: str,
+            collection_name: Optional[str] = None,
+            class_type: Optional[Type[T]] = None,
     ) -> bool:
-        collection_name = entity.__class__.__name__ if collection_name is None else collection_name
+        """
+        Delete an entity from the database.
+
+        Args:
+            obj_id: The ID of the object to delete (must be a valid ObjectId string)
+            collection_name: Name of the collection where the entity is stored
+            class_type: The class type used to determine collection name if collection_name is not provided
+
+        Returns:
+            bool: True if the document was deleted, False otherwise
+
+        Raises:
+            ValueError: If neither collection_name nor class_type is provided
+            ValueError: If obj_id is not a valid ObjectId string
+        """
+        if collection_name is None and class_type is None:
+            raise ValueError("Either collection_name or class_type must be provided")
+
+        try:
+            object_id = ObjectId(obj_id)
+        except Exception as e:
+            raise ValueError(f"Invalid object ID: {obj_id}") from e
+
+        collection_name = class_type.__name__ if collection_name is None else collection_name
         collection = self.db[collection_name]
 
-        result = await collection.delete_one({"_id": ObjectId(entity.id)})
-
+        result = await collection.delete_one({"_id": object_id})
         return result.deleted_count > 0
 
     async def get_unique_values(
@@ -511,4 +535,3 @@ class MongoDBDatabase:
         total = await collection.count_documents(doc_filter or {})
 
         return items, total
-

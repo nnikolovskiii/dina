@@ -85,7 +85,7 @@ class ChatService:
         else:
             model_api_obj.api_key = model_api.api_key
             model_api_obj.base_url = model_api.base_url
-            await self.mdb.update_entry(model_api_obj)
+            await self.mdb.update_entry(obj_id=model_api_obj.id, entity=model_api_obj)
 
     async def add_model_config(self, model_config: ModelConfig):
         model_config_obj = await self.mdb.get_entry_from_col_value(
@@ -107,7 +107,7 @@ class ChatService:
         else:
             model_config_obj.name = model_config.name
             model_config_obj.chat_api_type = model_config.chat_api_type
-            await self.mdb.update_entry(model_config_obj)
+            await self.mdb.update_entry(obj_id=model_config_obj.id, entity=model_config_obj)
 
     async def get_api_models(self, type: str, model_type: str):
         chat_api = await self.mdb.get_entry_from_col_value(
@@ -134,7 +134,7 @@ class ChatService:
 
         if current_active is not None:
             current_active.active = False
-            await self.mdb.update_entry(current_active)
+            await self.mdb.update_entry(obj_id=current_active.id, entity=current_active)
 
         new_active = await self.mdb.get_entry_from_col_values(
             columns={"name": active_model_dto.model, "model_type": model_type},
@@ -145,7 +145,7 @@ class ChatService:
             raise Exception("Chat Model does not exist")
         else:
             new_active.active = True
-            await self.mdb.update_entry(new_active)
+            await self.mdb.update_entry(obj_id=new_active.id, entity=new_active)
 
     async def get_messages_from_chat(
             self,

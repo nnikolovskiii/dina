@@ -23,7 +23,7 @@ class CheckParentLinkProcess(SimpleProcess):
         if new_prev_link != link_obj.prev_link:
             link_obj.prev_link = new_prev_link
 
-        await self.mdb.update_entry(entity=link_obj, update={self.process_name: True})
+        await self.mdb.update_entry(obj_id=link_obj.id,entity=link_obj, update={self.process_name: True})
 
     async def post_execute_process(self):
         base_link = await self.mdb.get_entry_from_col_value(

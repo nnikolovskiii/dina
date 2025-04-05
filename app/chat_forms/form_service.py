@@ -86,7 +86,7 @@ class FormService:
             args[key] = value["value"]
 
         new_obj = class_type(**args)
-        await self.mdb.update_entry(new_obj)
+        await self.mdb.update_entry(obj_id=new_obj.id, entity=new_obj)
 
     def get_missing(self, obj: T, exclude_args: Optional[List[str]] = None) -> dict:
         missing = {f for f, v in obj.model_dump().items() if v is None} - {'id'}

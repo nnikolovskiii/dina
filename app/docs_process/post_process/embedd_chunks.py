@@ -22,8 +22,8 @@ class EmbeddChunk(ProcessObj):
 class EmbeddingProcess(GroupProcess):
     qdb: QdrantDatabase
 
-    def __init__(self, mdb: MongoDBDatabase,order:int, class_type: Type[T], group_id: str, qdb: QdrantDatabase):
-        super().__init__(mdb,group_id,order, class_type)
+    def __init__(self, mdb: MongoDBDatabase, order: int, class_type: Type[T], group_id: str, qdb: QdrantDatabase):
+        super().__init__(mdb, group_id, order, class_type)
         self.qdb = qdb
 
     @property
@@ -65,21 +65,20 @@ class EmbeddingProcess(GroupProcess):
             )
 
             chunk.processed = True
-            await self.mdb.update_entry(chunk)
+            await self.mdb.update_entry(obj_id=chunk.id, entity=chunk)
 
         except Exception as e:
             logging.error(e)
 
-
     async def add_not_processed(self, link_obj: Link) -> int:
-            count = 0
-            chunks = await self.mdb.get_entries(DocsChunk, doc_filter={"link": link_obj.link})
-            for chunk in chunks:
-                if not chunk.processed:
-                    await self.mdb.add_entry(EmbeddChunk(chunk_id=chunk.id, group_id=self.group_id, link=chunk.link))
-                    count += 1
+        count = 0
+        chunks = await self.mdb.get_entries(DocsChunk, doc_filter={"link": link_obj.link})
+        for chunk in chunks:
+            if not chunk.processed:
+                await self.mdb.add_entry(EmbeddChunk(chunk_id=chunk.id, group_id=self.group_id, link=chunk.link))
+                count += 1
 
-            return count
+        return count
 
     async def _set_embedding_flags(
             self,
@@ -90,8 +89,8 @@ class EmbeddingProcess(GroupProcess):
                 doc_filter={"base_url": docs_url, "processed": False, "active": True},
         ):
             num_processed_chunks = await self.mdb.count_entries(DocsChunk,
-                                                           doc_filter={"link": link_obj.link, "base_url": docs_url,
-                                                                       "processed": True})
+                                                                doc_filter={"link": link_obj.link, "base_url": docs_url,
+                                                                            "processed": True})
             first_chunk = await self.mdb.get_entry_from_col_value(
                 column_name="link",
                 column_value=link_obj.link,
@@ -100,8 +99,7 @@ class EmbeddingProcess(GroupProcess):
 
             if first_chunk and first_chunk.doc_len == num_processed_chunks:
                 link_obj.processed = True
-                await self.mdb.update_entry(link_obj)
+                await self.mdb.update_entry(obj_id=link_obj.id, entity=link_obj)
             elif num_processed_chunks == 0:
                 link_obj.processed = True
-                await self.mdb.update_entry(link_obj)
-
+                await self.mdb.update_entry(obj_id=link_obj.id, entity=link_obj)

@@ -48,7 +48,7 @@ class ExtractContentProcess(GroupProcess):
                     await self.mdb.add_entry(content)
 
             link_obj.extracted = True
-            await self.mdb.update_entry(entity=link_obj)
+            await self.mdb.update_entry(obj_id=link_obj.id, entity=link_obj)
         except Exception as e:
             await self.mdb.delete_entity(link_obj)
             print(f"An unexpected error occurred: {e}")

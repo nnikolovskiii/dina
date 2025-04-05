@@ -31,6 +31,6 @@ async def update_tasks(
         else:
             task_collection.tasks_content = tasks
 
-        await mdb.update_entry(task_collection)
+        await mdb.update_entry(obj_id=task_collection.id, entity=task_collection)
 
     return f"Here are all the updated {"finished" if finished else "ongoing"} tasks:\n\n" + tasks

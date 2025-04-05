@@ -130,7 +130,7 @@ class UserFilesService:
             logger.info(f"PDF successfully uploaded: {upload_response}")
             download_link = f"{self.base_url}/download/{filename}"
             document_obj.download_link = download_link
-            await self.mdb.update_entry(document_obj)
+            await self.mdb.update_entry(obj_id=document_obj.id, entity=document_obj)
 
             return download_link
 

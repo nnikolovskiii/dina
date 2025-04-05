@@ -31,6 +31,6 @@ async def complete_tasks(
         obj_id = find_task_id_by_regex(tasks, task_id)
         task = await mdb.get_entry(ObjectId(obj_id), Task)
         task.finished = True
-        await mdb.update_entry(task)
+        await mdb.update_entry(obj_id=task.id, entity=task)
 
     return f"Successfully completed the tasks: {task_ids}"
