@@ -31,7 +31,7 @@ class CheckParentLinkProcess(SimpleProcess):
             column_value=self.group_id if self.group_id[-1] != "/" else self.group_id[:-1],
             class_type=Link,
         )
-        await self.mdb.delete_entity(base_link)
+        await self.mdb.delete_entity(obj_id=base_link.id, class_type=Link)
 
     @property
     def process_name(self) -> str:
