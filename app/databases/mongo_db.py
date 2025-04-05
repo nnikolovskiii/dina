@@ -5,7 +5,7 @@ from copy import deepcopy
 from bson import ObjectId
 from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorClient
-from typing import Optional, Any, List, Dict, TypeVar, Set, AsyncGenerator, Tuple
+from typing import Optional, Any, List, Dict, TypeVar, Set, AsyncGenerator, Tuple, Union
 from typing import Type as TypingType
 from dotenv import load_dotenv
 from pymongo.errors import DuplicateKeyError, ConnectionFailure
@@ -59,7 +59,7 @@ class MongoDBDatabase:
             entity: Dict[str, Any],
             collection_name: str,
             metadata: Optional[Dict[str, Any]] = None
-    ) -> bool:
+    ) -> str:
         collection = self.db[collection_name]
         entry = deepcopy(entity)
         if "id" in entry:
@@ -67,8 +67,8 @@ class MongoDBDatabase:
         if metadata:
             entry.update(metadata)
 
-        await collection.insert_one(entry)
-        return True
+        result = await collection.insert_one(entry)
+        return str(result.inserted_id)
 
     async def get_entries(
             self,
@@ -282,6 +282,7 @@ class MongoDBDatabase:
         )
 
         return result.modified_count > 0
+
     async def delete_collection(self, collection_name: str) -> bool:
         if collection_name not in await self.db.list_collection_names():
             logging.info(f"Collection '{collection_name}' does not exist.")
@@ -452,42 +453,33 @@ class MongoDBDatabase:
     async def get_paginated_entries(
             self,
             *,
-            class_type: Optional[TypingType[T]] = None,
-            collection_name: Optional[str] = None,
+            collection_name: str,
             page: int,
             page_size: int,
             doc_filter: Optional[dict] = None,
             sort: Optional[list[tuple[str, int]]] = None,
-    ) -> tuple[list[T], int]:
-        # Validate input
-        if not (class_type or collection_name):
-            raise ValueError("Provide either `class_type` or `collection_name`.")
-        if class_type and collection_name:
-            raise ValueError("Provide only one of `class_type` or `collection_name`.")
+    ) -> tuple[Union[list[T], list[dict]], int]:
+        """Get paginated results with optional model validation"""
 
-        # Derive class_type or collection_name
-        if collection_name:
-            class_type = COLLECTION_REGISTRY.get(collection_name)
-            if not class_type:
-                raise ValueError(f"Collection '{collection_name}' not registered.")
-        else:
-            collection_name = getattr(class_type, "__collection__", None)
-            if not collection_name:
-                raise ValueError("Class has no registered collection name.")
-
-        # Rest of the method remains unchanged
-        if page < 1 or page_size < 1:
-            raise ValueError("Page and page_size must be ≥ 1.")
+        if page < 1:
+            raise ValueError("page must be greater than 0")
+        if page_size < 1:
+            raise ValueError("page_size must be greater than 0")
 
         collection = self.db[collection_name]
+
         skip = (page - 1) * page_size
 
         query = collection.find(doc_filter or {})
-        if sort:
+        if sort is not None:
             query = query.sort(sort)
-        cursor = query.skip(skip).limit(page_size)
+        query = query.skip(skip).limit(page_size)
 
-        items = [class_type.model_validate(doc) async for doc in cursor]
+        items = []
+        async for doc in query:
+            doc['id'] = str(doc.pop('_id'))
+            items.append(doc)
+
         total = await collection.count_documents(doc_filter or {})
 
         return items, total
