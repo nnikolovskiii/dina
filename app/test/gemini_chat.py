@@ -1,7 +1,7 @@
 from PIL import Image
 from google import genai
 
-client = genai.Client(api_key="AIzaSyDmjcf_ZssOrf0BM58QeHc1VxGasaZe5Fo")
+client = genai.Client(api_key="")
 
 image = Image.open("/home/nnikolovskii/PycharmProjects/dina/assets/snickerts.jpg")
 response = client.models.generate_content(
