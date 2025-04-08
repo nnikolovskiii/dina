@@ -32,3 +32,9 @@ class TaskCollection(MongoEntry):
     tasks_finished_content: str
     last_modified: datetime
     email: EmailStr
+
+
+class DataEntry(MongoEntry):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    email: Optional[EmailStr] = None
