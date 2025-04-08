@@ -52,7 +52,7 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -62,16 +62,14 @@ app.add_middleware(
 async def generic_exception_handler(request, exc):
     return JSONResponse(
         status_code=500,
-        content={"message": "Internal server error"},
-        headers={"Access-Control-Allow-Origin": "*"}  # Explicitly add CORS headers
+        content={"message": "Internal server error"}
     )
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc):
     return JSONResponse(
         status_code=400,
-        content={"message": "Validation error", "details": exc.errors()},
-        headers={"Access-Control-Allow-Origin": "*"}
+        content={"message": "Validation error", "details": exc.errors()}
     )
 
 # routes
