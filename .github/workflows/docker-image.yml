@@ -38,4 +38,4 @@ jobs:
           command: |
             echo "${{ secrets.SSH_SERVER }}" > ssh_key
             chmod 600 ssh_key
-            ssh -i ssh_key -o StrictHostKeyChecking=no ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }} "cd docker && docker pull ${{ secrets.DOCKERHUB_USERNAME }}/remora-ai:latest && docker compose down && docker compose up -d"
+            ssh -i ssh_key -o StrictHostKeyChecking=no ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }} "cd docker && docker pull ${{ secrets.DOCKERHUB_USERNAME }}/remora-backend:latest && docker compose down && docker compose up -d"
