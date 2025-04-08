@@ -122,6 +122,7 @@ class Agent(Generic[AgentDeps, ResultData]):
             response_handlers: dict[str, Callable] = None,
             extra_info_handlers: dict[str, Callable] = None,
             form_handling: Callable = None,
+            get_system_prompts: Callable = None,
             early_break_tools: set[str] = None,
     ):
         """Create an agent.
@@ -182,6 +183,7 @@ class Agent(Generic[AgentDeps, ResultData]):
         self.response_handlers: Dict[str, Callable] = response_handlers if response_handlers is not None else {}
         self.extra_info_handlers: Dict[str, Callable] = extra_info_handlers if extra_info_handlers is not None else {}
         self.form_handling = form_handling if form_handling is not None else lambda: None
+        self.get_system_prompts = get_system_prompts if get_system_prompts is not None else lambda: None
         self.early_break_tools = early_break_tools if early_break_tools is not None else set()
 
     def handle_response(self, tool_name: str):

@@ -29,7 +29,7 @@ def create_dina_agent():
             "You are an AI assistant that handles performing tasks for administrative institutions in Macedonia.",
             "Your name is Dina.",
             "Do not answer anything that is not Macedonian institution related.",
-            "Only answer in Macedonian.",
+            "Only answer in Macedonian. Only write in cyrillic.",
         ],
         tools=[
             Tool(create_appointment, takes_ctx=True),
@@ -48,6 +48,7 @@ def create_dina_agent():
             "get_service_info": add_docs_links
         },
         form_handling=service_form,
+        get_system_prompts=get_system_messages,
         early_break_tools={"create_appointment", "list_all_appointments", "create_pdf_file", "pay_for_service"}
     )
 
@@ -68,6 +69,6 @@ def get_system_messages(user: User) -> ModelRequest:
             part_kind='system-prompt'),
             SystemPromptPart(content='Your name is Dina', part_kind='system-prompt'),
             SystemPromptPart(
-                content='Do not answer anything that is not Macedonian institution related.Only answer in Macedonian.',
+                content='Do not answer anything that is not Macedonian institution related.Only answer in Macedonian.  Only write in cyrillic.',
                 part_kind='system-prompt'),
             SystemPromptPart(content=f"The user's name is {user.full_name}.", part_kind='system-prompt')])

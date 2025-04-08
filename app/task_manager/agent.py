@@ -40,6 +40,7 @@ def create_company_consultant_agent():
             Tool(prioritize_tasks, takes_ctx=False),
             Tool(create_tasks_from_goal, takes_ctx=False),
         ],
+        get_system_prompts=get_system_messages
     )
 
     company_agent.api_key = api_key
