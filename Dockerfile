@@ -23,6 +23,13 @@ FROM python:3.12-slim as runtime
 # Install git and other runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git && \
+    libgobject-2.0-0 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libcairo2 \
+    libgdk-pixbuf2.0-0 \
+    libffi-dev \
+    shared-mime-info \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Set up virtual environment
