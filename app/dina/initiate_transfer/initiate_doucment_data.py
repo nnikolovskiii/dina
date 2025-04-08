@@ -76,8 +76,15 @@ async def initiate_document_data(
         return
 
     if from_tool == "create_appointment" and service_procedure.name == "Вадење на извод од матична книга на родени за полнолетен граѓанин":
+        li = await mdb.get_entries(class_type=class_type, doc_filter={"email": current_user.email})
+        print(li)
+        if len(li) == 0:
+            message = f"Нема потреба од закажување на термини за побараната услуга. Дали сакате да продолжам директно со создавање на документот?"
+        else:
+            message = f"Нема потреба од закажување на термини за побараната услуга. Дали сакате да продолжам директно со уплата?"
+
         form_data = FormServiceData(
-            status_message=f"Нема потреба од закажување на термини за побараната услуга. Дали сакате да продолжам директно со уплата?",
+            status_message=message,
             status=FormServiceStatus.NO_SERVICE
         )
 
@@ -181,7 +188,7 @@ async def initiate_document_data(
                         data=form_data,
                         data_type=data_type,
                         intercept_type=actions[0],
-                        #TODO: Uneccessary duplicate
+                        # TODO: Uneccessary duplicate
                         actions=actions
                     )
                 )

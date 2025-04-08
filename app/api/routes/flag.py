@@ -46,5 +46,5 @@ async def set_flag(name:str, active: bool, mdb: mdb_dep):
         flag_obj = await mdb.get_entry(ObjectId(flag_id), Flag)
     else:
         flag_obj.active = active
-        await mdb.update_entry(flag_obj)
+        await mdb.update_entry(obj_id=flag_obj.id, entity=flag_obj)
     return flag_obj

@@ -85,7 +85,7 @@ async def change_active_repos(git_url_dto: GitUrlDto ,mdb: mdb_dep):
             class_type=GitUrl
         )
         git_url_obj.active = active_status
-        await mdb.update_entry(git_url_obj)
+        await mdb.update_entry(obj_id=git_url_obj.id, entity=git_url_obj)
 
 @router.post("/change_active_files/")
 async def _change_active_files(file_dto: FileActiveListDto, git_url:str, mdb: mdb_dep, qdb: qdb_dep):

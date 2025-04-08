@@ -88,7 +88,7 @@ async def update_file(file_active_dto: FileActiveDto, mdb: mdb_dep):
         await mdb.add_entry(folder, "TempFolder")
     else:
         tmp_folder.active = file_active_dto.active
-        await mdb.update_entry(tmp_folder, "TempFolder")
+        await mdb.update_entry(obj_id=tmp_folder.id,entity=tmp_folder,collection_name= "TempFolder")
 
 @router.get("/get_git_urls/")
 async def get_git_urls(mdb: mdb_dep):

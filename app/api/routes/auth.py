@@ -2,7 +2,7 @@ import os
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Response, WebSocketException
-from fastapi.params import Form, Depends
+from fastapi.params import Depends
 from pydantic import BaseModel
 import jwt
 from fastapi import WebSocket
@@ -45,7 +45,11 @@ async def register(
     )
     await mdb.add_entry(new_user)
 
-    return {"message": "Registration successful"}
+    return {
+        "status": "success",
+        "message": "Registration successful",
+        "data": None
+    }
 
 
 class UserLogin(BaseModel):
@@ -63,18 +67,18 @@ async def login(
 
     user = await user_service.get_user(user_data.email)
     if not user:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=401, detail="Invalid email or password")
 
     is_password_correct = password_service.verify_password(
         user_data.password, user.hashed_password
     )
 
     if not is_password_correct:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=401, detail="Invalid email or password")
     if user.is_google_auth:
-        raise HTTPException(status_code=400, detail="Use Google login")
+        raise HTTPException(status_code=400, detail="Please use Google login")
 
-    expires = datetime.now(timezone.utc) + timedelta(minutes=60*24)
+    expires = datetime.now(timezone.utc) + timedelta(minutes=60 * 24)
     jwt_token = jwt.encode(
         {"sub": user.email, "exp": expires},
         secret,
@@ -85,25 +89,40 @@ async def login(
         key="access_token",
         value=f"Bearer {jwt_token}",
         httponly=True,
-        # secure=True,  # Requires HTTPS in production
+        # secure=True,  # Uncomment in production
         samesite="lax",
-        max_age=60*60*24,
+        max_age=60 * 60 * 24,
     )
 
     return {
-        "access_token": jwt_token,
-        "token_type": "bearer"
+        "status": "success",
+        "message": "Login successful",
+        "data": {
+            "access_token": jwt_token,
+            "token_type": "bearer"
+        }
     }
+
 
 @router.post("/add-user-info")
 async def add_user_info(
         user_info: UserInfo,
-) -> bool:
+):
     user_service = container.user_service()
     exists = await user_service.check_user_exist(user_info.email)
-    if exists:
-        return await user_service.encrypt_add_user_info(user_info)
-    return False
+    if not exists:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    success = await user_service.encrypt_add_user_info(user_info)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to add user info")
+
+    return {
+        "status": "success",
+        "message": "User info added successfully",
+        "data": None
+    }
+
 
 @router.get("/get-user-info")
 async def get_user_info(
@@ -111,8 +130,16 @@ async def get_user_info(
 ):
     user_service = container.user_service()
     exists = await user_service.check_user_exist(email)
-    if exists:
-      return await user_service.get_user_info_decrypted(email)
+    if not exists:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user_info = await user_service.get_user_info_decrypted(email)
+    return {
+        "status": "success",
+        "message": "User info retrieved",
+        "data": user_info
+    }
+
 
 @router.post("/logout")
 async def logout(response: Response):
@@ -122,7 +149,11 @@ async def logout(response: Response):
         secure=True,
         samesite="strict"
     )
-    return {"message": "Logged out successfully"}
+    return {
+        "status": "success",
+        "message": "Logged out successfully",
+        "data": None
+    }
 
 
 async def get_current_user(request: Request) -> User:
@@ -146,7 +177,6 @@ async def get_current_user(request: Request) -> User:
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    print(user)
     return user
 
 
@@ -159,7 +189,6 @@ async def get_current_user_websocket(websocket: WebSocket) -> User:
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
 
     try:
-        # Remove Bearer prefix if present
         token = token.replace("Bearer ", "").strip()
         payload = jwt.decode(token, secret, algorithms=[algorithm])
         email = payload.get("sub")
@@ -183,8 +212,11 @@ async def get_current_user_websocket(websocket: WebSocket) -> User:
 async def get_protected_data(
         current_user: User = Depends(get_current_user)
 ):
-    print(current_user)
     return {
-        "email": current_user.email,
-        "full_name": current_user.full_name
+        "status": "success",
+        "message": "User data retrieved",
+        "data": {
+            "email": current_user.email,
+            "full_name": current_user.full_name
+        }
     }

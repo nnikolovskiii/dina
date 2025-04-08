@@ -9,7 +9,6 @@ import logging
 
 from app.container import container
 from app.databases.mongo_db import MongoDBDatabase
-from app.dina.agent import get_system_messages
 from app.dina.models.service_procedure import ServiceProcedureDocument
 from app.websocket.models import WebsocketData, ChatResponse
 
@@ -104,11 +103,12 @@ async def get_history(chat_id: str, current_user: User):
 
 
 def convert_history(history, user: User):
+    agent = container.agent()
     if history is None or len(history) == 0:
         return None
 
     li = []
-    message_request = get_system_messages(user)
+    message_request = agent.get_system_prompts(user)
     message_request.parts.append(
         UserPromptPart(content=history[0]["content"], timestamp=datetime.datetime.now(datetime.UTC),
                        part_kind='user-prompt'))

@@ -2,6 +2,7 @@ from typing import TypeVar, Type
 
 from pydantic import BaseModel
 
+from app.llms.chat.anthropic_chat import AnthropicChat
 from app.llms.chat.inference_client_chat import InferenceClientChat
 from app.llms.chat.ollama_chat import OllamaChat
 from app.llms.chat.openai_chat import OpenAIChat
@@ -9,6 +10,7 @@ from app.llms.embedders.openai_embedder import OpenAIEmbeddingModel
 from app.llms.models import ChatLLM, StreamChatLLM, EmbeddingModel, Reranker, BaseLLM
 from app.llms.rerankers.cohere_reranker import CohereReranker
 from app.llms.rerankers.nim_reranker import NimReranker
+from app.llms.stream_chat.anthropic_stream import AnthropicStreamChat
 from app.llms.stream_chat.inference_client_stream import InferenceClientStreamChat
 from app.llms.stream_chat.openai_stream import OpenAIStreamChat
 from app.chat.models import ModelApi, ModelConfig
@@ -26,6 +28,8 @@ class LLMFactory(BaseModel):
             return InferenceClientChat(chat_api=chat_api, chat_model_config=chat_model_config)
         elif chat_api.type == "ollama":
             return OllamaChat(chat_api=chat_api, chat_model_config=chat_model_config)
+        elif chat_api.type == "anthropic":
+            return AnthropicChat(chat_api=chat_api, chat_model_config=chat_model_config)
         else:
             return OpenAIChat(chat_api=chat_api, chat_model_config=chat_model_config)
 
@@ -36,6 +40,8 @@ class LLMFactory(BaseModel):
     ) -> StreamChatLLM:
         if chat_api.type == "hugging_face":
             return InferenceClientStreamChat(chat_api=chat_api, chat_model_config=chat_model_config)
+        elif chat_api.type == "anthropic":
+            return AnthropicStreamChat(chat_api=chat_api, chat_model_config=chat_model_config)
         else:
             return OpenAIStreamChat(chat_api=chat_api, chat_model_config=chat_model_config)
 

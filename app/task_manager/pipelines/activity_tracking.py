@@ -48,7 +48,7 @@ async def activity_tracking(
     for task_id in response["tasks_completed_ids"]:
         task = await mdb.get_entry(ObjectId(task_id), Task)
         task.finished = True
-        await mdb.update_entry(task)
+        await mdb.update_entry(obj_id=task.id, entity=task)
         tasks_completed.append(task)
 
     return f"Successfully update the completed tasks: {tasks_completed}"

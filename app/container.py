@@ -7,6 +7,7 @@ from app.auth.services.password import PasswordService
 from app.auth.services.user import UserService
 from app.chat.service import ChatService
 from app.databases.mongo_db import MongoDBDatabase
+from app.dina.agent import create_dina_agent
 from app.llms.llm_factory import LLMFactory
 from app.chat_forms.file_system_service import FileSystemService
 from app.chat_forms.form_service import FormService
@@ -47,7 +48,8 @@ class Container(containers.DeclarativeContainer):
         mdb=mdb,
         fernet=fernet
     )
-    from app.dina.agent import create_dina_agent
+    from app.task_manager.agent import create_company_consultant_agent
+
     agent = providers.Factory(create_dina_agent)
     password_service = providers.Factory(
         PasswordService,

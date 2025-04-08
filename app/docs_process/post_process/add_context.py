@@ -42,7 +42,7 @@ class AddContextProcess(GroupProcess):
             try:
                 await self._add_context(chunk, self.context_len)
                 chunk.context_processed = True
-                await self.mdb.update_entry(chunk)
+                await self.mdb.update_entry(obj_id=chunk.id, entity=chunk)
                 break
             except Exception as e:
                 logging.info(f"Adjusting the context_length. Current context length: {self.context_len}")

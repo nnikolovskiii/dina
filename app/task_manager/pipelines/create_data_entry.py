@@ -7,7 +7,7 @@ from pydantic_ai import RunContext
 from app.container import container
 from app.llms.models import ChatLLM
 from app.pipelines.pipeline import ChatPipeline
-from app.task_manager.models.task import Task
+from app.task_manager.models.task import Task, DataEntry
 
 
 class TaskCreation(ChatPipeline):
@@ -18,44 +18,31 @@ class TaskCreation(ChatPipeline):
     def template(
             self,
             text: str,
-            curr_date: datetime
     ) -> str:
-        return f"""Given the below tasks your job is to create task objects out of it. Make the tasks concrete and understandable. Provide a sufficient title and description.
-Always return in English.
+        return f"""Given the below text your job is to create data entry objects out of it. Make the data entry concrete and understandable. Provide detailed description.
+Always return in English. 
 
 Return format:
 {{
-  "title": null,
-  "subtasks": null,
-  "description": null,
-  "finished": false,
-  "collaborators": [],
-  "due_date": null
+  "title": str,
+  "description": str,
 }}
 
-Tasks: 
+Text: 
 {text}
 
-Current Date:
-{curr_date.strftime("%Y-%m-%d %H:%M:%S")}
-
-Return in json with key "tasks": []
+Return in json with key "data_entries": []
 """
 
 
-async def create_tasks(
+async def create_data_entries(
         ctx: RunContext[str],
         text: str
 ):
     """
-    Creates and stores tasks based on a text input and context.
+    Creates and stores data entries based on a text input and context.
 
-    :param text: Input text used for generating tasks. The function processes
-        this text to identify and create actionable tasks.
-    :type text: str
-    :return: A list of tasks created and stored in the database as per the input
-        text and context.
-    :rtype: List[Task]
+    :param text: Input text used for generating data entries.
     """
     mdb = container.mdb()
     chat_service = container.chat_service()
@@ -64,16 +51,17 @@ async def create_tasks(
 
     response = await retriever_pipeline.execute(
         text=text,
-        curr_date=datetime.now()
     )
 
-    tasks: List[Task] = []
+    tasks: List[DataEntry] = []
 
-    for task in response["tasks"]:
-        new_task = Task(**task)
-        new_task.email = ctx.deps.email
-        tasks.append(new_task)
-        await mdb.add_entry(new_task)
+    print(response['data_entries'])
+
+    for data_entry in response["data_entries"]:
+        new_data_entry = DataEntry(**data_entry)
+        new_data_entry.email = ctx.deps.email
+        tasks.append(new_data_entry)
+        await mdb.add_entry(new_data_entry)
 
     return tasks
 

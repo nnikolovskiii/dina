@@ -23,7 +23,7 @@ class CheckParentLinkProcess(SimpleProcess):
         if new_prev_link != link_obj.prev_link:
             link_obj.prev_link = new_prev_link
 
-        await self.mdb.update_entry(entity=link_obj, update={self.process_name: True})
+        await self.mdb.update_entry(obj_id=link_obj.id,entity=link_obj, update={self.process_name: True})
 
     async def post_execute_process(self):
         base_link = await self.mdb.get_entry_from_col_value(
@@ -31,7 +31,7 @@ class CheckParentLinkProcess(SimpleProcess):
             column_value=self.group_id if self.group_id[-1] != "/" else self.group_id[:-1],
             class_type=Link,
         )
-        await self.mdb.delete_entity(base_link)
+        await self.mdb.delete_entity(obj_id=base_link.id, class_type=Link)
 
     @property
     def process_name(self) -> str:

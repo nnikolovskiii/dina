@@ -99,7 +99,7 @@ async def websocket_endpoint(
                     )
 
                     chat_obj.num_messages += 1
-                    await mdb.update_entry(chat_obj)
+                    await mdb.update_entry(obj_id=chat_obj.id,entity=chat_obj)
 
         except pymongo.errors.DuplicateKeyError as e:
             logging.error(f"Duplicate key error: {e}")
