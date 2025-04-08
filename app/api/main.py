@@ -11,10 +11,14 @@ from app.api.routes import code, chat, test, code_files, docs, links, process, f
 from app.container import container
 from app.databases.singletons import get_mongo_db, get_qdrant_db
 from app.websocket import websocket
+from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('pymongo').setLevel(logging.WARNING)
+
 
 
 @asynccontextmanager
@@ -53,6 +57,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=500,
+        content={"message": "Internal server error"},
+        headers={"Access-Control-Allow-Origin": "*"}  # Explicitly add CORS headers
+    )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=400,
+        content={"message": "Validation error", "details": exc.errors()},
+        headers={"Access-Control-Allow-Origin": "*"}
+    )
 
 # routes
 app.include_router(code.router, prefix="/code", tags=["code"])
