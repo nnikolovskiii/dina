@@ -11,16 +11,16 @@ from dotenv import load_dotenv
 from app.auth.services.user import UserService
 from pydantic import EmailStr
 
-from app.chat_forms.templates.birth_certificate import BirthCertificate
-from app.chat_forms.templates.passport import Passport
+from app.dina.pdf_templates.birth_certificate import BirthCertificate
+from app.dina.pdf_templates.passport import Passport
 from app.databases.mongo_db import MongoDBDatabase
 from app.dina.models.service_procedure import ServiceProcedure
 from app.chat_forms.file_system_service import FileSystemService
 from io import BytesIO
 
-from app.chat_forms.templates.doc_template import UserDocument
-from app.chat_forms.templates.driver_licnece import DriverLicence
-from app.chat_forms.templates.persoal_Id import PersonalID
+from app.dina.pdf_templates.doc_template import UserDocument
+from app.dina.pdf_templates.driver_licnece import DriverLicence
+from app.dina.pdf_templates.persoal_Id import PersonalID
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -130,7 +130,7 @@ class UserFilesService:
             logger.info(f"PDF successfully uploaded: {upload_response}")
             download_link = f"{self.base_url}/download/{filename}"
             document_obj.download_link = download_link
-            await self.mdb.update_entry(document_obj)
+            await self.mdb.update_entry(obj_id=document_obj.id, entity=document_obj)
 
             return download_link
 

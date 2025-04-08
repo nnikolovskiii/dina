@@ -16,7 +16,7 @@ async def initiate_document_data(
         websocket: WebSocket,
         chat_id: str,
         response: ChatResponse,
-        task: str,
+        service: str,
         current_user: User,
         from_tool: str,
 ):
@@ -28,11 +28,11 @@ async def initiate_document_data(
     logging.info("Inside tool for creating pdf file for personal id.")
 
     # determine the service using AI
-    service_type_response = await determine_service_type(task=task)
+    service_type_response = await determine_service_type(service=service)
     print(service_type_response)
     service_procedure = await mdb.get_entry(id=ObjectId(service_type_response.service_id), class_type=ServiceProcedure)
     if service_procedure is None:
-        logging.info(f"There exists no service for task: {task}")
+        logging.info(f"There exists no service for task: {service}")
         form_data = FormServiceData(
             status_message=f"Не поддржуваме такво барање. Треба да внесете валидни услуги на институциите.",
             status=FormServiceStatus.NO_SERVICE
@@ -41,7 +41,7 @@ async def initiate_document_data(
         await send_websocket_data(
             websocket_data=WebsocketData(
                 data=form_data.status_message,
-                data_type="no_stream"
+                data_type="stream"
             ),
             websocket=websocket,
             response=response,
@@ -56,7 +56,7 @@ async def initiate_document_data(
     )
 
     if class_type is None:
-        logging.info(f"There exists no service for task: {task}")
+        logging.info(f"There exists no service for task: {service}")
 
         form_data = FormServiceData(
             status_message=f"Се уште не го подржуваме побараниот сервис: {service_procedure.name}",
@@ -66,7 +66,7 @@ async def initiate_document_data(
         await send_websocket_data(
             websocket_data=WebsocketData(
                 data=form_data.status_message,
-                data_type="no_stream"
+                data_type="stream"
             ),
             websocket=websocket,
             response=response,
@@ -76,15 +76,22 @@ async def initiate_document_data(
         return
 
     if from_tool == "create_appointment" and service_procedure.name == "Вадење на извод од матична книга на родени за полнолетен граѓанин":
+        li = await mdb.get_entries(class_type=class_type, doc_filter={"email": current_user.email})
+        print(li)
+        if len(li) == 0:
+            message = f"Нема потреба од закажување на термини за побараната услуга. Дали сакате да продолжам директно со создавање на документот?"
+        else:
+            message = f"Нема потреба од закажување на термини за побараната услуга. Дали сакате да продолжам директно со уплата?"
+
         form_data = FormServiceData(
-            status_message=f"Нема потреба од закажување на термини за побараната услуга. Дали сакате да продолжам директно со уплата?",
+            status_message=message,
             status=FormServiceStatus.NO_SERVICE
         )
 
         await send_websocket_data(
             websocket_data=WebsocketData(
                 data=form_data.status_message,
-                data_type="no_stream"
+                data_type="stream"
             ),
             websocket=websocket,
             response=response,
@@ -106,20 +113,21 @@ async def initiate_document_data(
 
     # if there are missing fields it is not created and uploaded, if they are no missing attrs then proceed.
     if has_document:
-        message = "Веќе имате создадено документ. Ова е линкот до вашиот документ: "
-        di = {document.download_link: service_procedure.service_type}
-        link = get_link_template(di)
-        message += link
+        if from_tool == "create_pdf_file":
+            message = "Веќе имате создадено документ. Ова е линкот до вашиот документ: "
+            di = {document.download_link: service_procedure.service_type}
+            link = get_link_template(di)
+            message += link
 
-        await send_websocket_data(
-            websocket_data=WebsocketData(
-                data=message,
-                data_type="no_stream"
-            ),
-            websocket=websocket,
-            response=response,
-            chat_id=chat_id,
-        )
+            await send_websocket_data(
+                websocket_data=WebsocketData(
+                    data=message,
+                    data_type="stream"
+                ),
+                websocket=websocket,
+                response=response,
+                chat_id=chat_id,
+            )
 
     else:
         logging.info(f"Not enough information for creating the document for: {service_procedure.service_type}.")
@@ -157,21 +165,33 @@ async def initiate_document_data(
         else:
             from app.dina.initiate_transfer.entrypoint import initiate_data_transfer
 
-            await initiate_data_transfer(
-                intercept_type=actions[0],
-                current_user=current_user,
-                websocket=websocket,
-                chat_id=chat_id,
-                form_service_data=form_data,
-                response=response,
-                ws_data=WebsocketData(
-                    data=form_data,
-                    data_type=data_type,
-                    intercept_type=actions[0],
-                    #TODO: Uneccessary duplicate
-                    actions=actions
+            if from_tool == "create_pdf_file":
+                await send_websocket_data(
+                    websocket_data=WebsocketData(
+                        data=form_data,
+                        data_type="echo_form",
+                        actions=actions,
+                        intercept_type=actions[0]
+                    ),
+                    websocket=websocket,
+                    chat_id=chat_id,
                 )
-            )
+            else:
+                await initiate_data_transfer(
+                    intercept_type=actions[0],
+                    current_user=current_user,
+                    websocket=websocket,
+                    chat_id=chat_id,
+                    form_service_data=form_data,
+                    response=response,
+                    ws_data=WebsocketData(
+                        data=form_data,
+                        data_type=data_type,
+                        intercept_type=actions[0],
+                        # TODO: Uneccessary duplicate
+                        actions=actions
+                    )
+                )
 
 
 def _get_form_type(
@@ -184,9 +204,13 @@ def _get_form_type(
     if not has_document:
         actions.append("document_data")
 
+    if service_name == "Вадење на извод од матична книга на родени за полнолетен граѓанин":
+        actions.append("payment_data")
+        actions.append("send_email")
+
     if from_tool != "create_pdf_file":
         if service_name == "Вадење на извод од матична книга на родени за полнолетен граѓанин":
-            actions.append("payment_data")
+            pass
         else:
             actions.append("appointment_data")
             actions.append("payment_data")
@@ -195,6 +219,8 @@ def _get_form_type(
         actions.append("send_email")
 
     if from_tool == "create_pdf_file":
-        data_type = "form1"
+        data_type = "form"
 
+    if from_tool == "create_pdf_file":
+        actions.append("echo")
     return actions, data_type

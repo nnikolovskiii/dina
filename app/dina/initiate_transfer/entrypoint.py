@@ -26,7 +26,7 @@ async def initiate_data_transfer(
             websocket=websocket,
             chat_id=chat_id,
             response=response,
-            task=part_content,
+            service=part_content,
             from_tool=from_tool,
         )
     elif intercept_type == "appointment_data":

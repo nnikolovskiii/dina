@@ -80,7 +80,7 @@ class TraverseSitesProcess(Process):
             if not first:
                 batch.curr_batch += 1
                 print(batch.curr_batch)
-                await self.mdb.update_entry(batch)
+                await self.mdb.update_entry(obj_id=batch.id, entity=batch)
             else:
                 first = False
 
@@ -101,7 +101,7 @@ class TraverseSitesProcess(Process):
                 await self.progress_coordinator.increment_progress(num=curr_count)
                 curr_count += 1
                 link_obj.traversed = True
-                await  self.mdb.update_entry(link_obj)
+                await  self.mdb.update_entry(obj_id=link_obj.id, entity=link_obj)
 
                 neighbours = self._get_neighbouring_links(link_obj.link)
                 for link in neighbours:

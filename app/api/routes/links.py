@@ -71,7 +71,7 @@ async def activate_link(link:str, active_status:bool, mdb: mdb_dep, qdb: qdb_dep
     link_obj.active = active_status
     await _update_links_qdrant(qdb=qdb,links={link_obj.link}, active_status=link_obj.active)
 
-    await mdb.update_entry(link_obj)
+    await mdb.update_entry(obj_id=link_obj.id, entity=link_obj)
 
 
 @router.get("/activate_all_links_from_parent_recursively/")
@@ -86,14 +86,14 @@ async def activate_all_links_from_parent_recursively(prev_link: str, active_stat
 
     if link_obj:
         link_obj.active = active_status
-        await mdb.update_entry(link_obj)
+        await mdb.update_entry(obj_id=link_obj.id, entity=link_obj)
         links_set.add(link_obj.link)
 
     links = await mdb.get_entries(Link, doc_filter={"prev_link": prev_link})
     while len(links) > 0:
         link = links.pop()
         link.active = active_status
-        await mdb.update_entry(link)
+        await mdb.update_entry(obj_id=link.id, entity=link)
         links.extend(await mdb.get_entries(Link, doc_filter={"prev_link": link.link}))
         links_set.add(link_obj.link)
 
@@ -107,7 +107,7 @@ async def activate_all_links_from_docs_url(docs_url: str, active_status: bool, m
 
     for link in links:
         link.active = active_status
-        await mdb.update_entry(link)
+        await mdb.update_entry(obj_id=link.id, entity=link)
         links_set.add(link.link)
 
     await _update_links_qdrant(qdb=qdb, links=links_set, active_status=active_status)
@@ -119,7 +119,7 @@ async def activate_all_links_from_parent(prev_link: str, active_status: bool, md
     links_set: Set[str] = set()
     for link in links:
         link.active = active_status
-        await mdb.update_entry(link)
+        await mdb.update_entry(obj_id=link.id, entity=link)
         links_set.add(link.link)
 
     await _update_links_qdrant(qdb=qdb, links=links_set, active_status=active_status)

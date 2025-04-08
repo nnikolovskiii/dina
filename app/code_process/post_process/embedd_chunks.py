@@ -1,7 +1,6 @@
 import logging
 from typing import List
 
-
 from app.databases.mongo_db import MongoDBDatabase
 from app.databases.qdrant_db import QdrantDatabase
 from app.models.code import CodeChunk, CodeContext, CodeEmbeddingFlag, Folder
@@ -14,8 +13,7 @@ async def create_final_chunks(
         mdb: MongoDBDatabase,
         chunks: List[CodeChunk],
         contexts: List[CodeContext]
-)->List[CodeChunk]:
-
+) -> List[CodeChunk]:
     contexts_dict = {context.chunk_id: context.context for context in contexts}
 
     final_chunks = []
@@ -31,11 +29,11 @@ async def create_final_chunks(
 
         chunk.content = content
 
-        await mdb.update_entry(chunk)
+        await mdb.update_entry(obj_id=chunk.id, entity=chunk)
         final_chunks.append(chunk)
         count_all += 1
 
-    if len(chunks)>0:
+    if len(chunks) > 0:
         logger.info(f"{count_context / len(chunks) * 100:.2f}% of chunks had context added")
         logger.info(f"{count_all / len(chunks) * 100:.2f}% of chunks were successfully added to the database")
 
@@ -71,5 +69,6 @@ async def embedd_chunks(
             folder.active = True
 
             await mdb.update_entry(
-                folder
+                obj_id=folder.id,
+                entity=folder
             )

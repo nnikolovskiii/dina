@@ -109,4 +109,4 @@ async def activate_docs_url(docs_url: str, active_status: bool, mdb: mdb_dep):
         class_type=DocsUrl
     )
     docs_url_obj.active = active_status
-    await mdb.update_entry(docs_url_obj)
+    await mdb.update_entry(obj_id=docs_url_obj.id, entity=docs_url_obj)

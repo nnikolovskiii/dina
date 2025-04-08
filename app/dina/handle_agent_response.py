@@ -3,15 +3,12 @@ import logging
 from starlette.websockets import WebSocket
 
 from app.auth.models.user import User
-from app.dina.agent import dina_agent
 from app.dina.initiate_transfer.entrypoint import initiate_data_transfer
 
 from app.websocket.models import ChatResponse, WebsocketData
 
 
-
-@dina_agent.handle_response("create_appointment")
-async def handle_service_application(
+async def handle_create_appointment(
         part_content: any,
         websocket: WebSocket,
         chat_id: str,
@@ -28,8 +25,8 @@ async def handle_service_application(
         from_tool="create_appointment"
     )
 
-@dina_agent.handle_response("pay_for_service")
-async def handle_service_application(
+
+async def handle_pay_for_service(
         part_content: any,
         websocket: WebSocket,
         chat_id: str,
@@ -46,8 +43,8 @@ async def handle_service_application(
         from_tool="pay_for_service"
     )
 
-@dina_agent.handle_response("create_pdf_file")
-async def handle_service_application(
+
+async def handle_create_pdf_file(
         part_content: any,
         websocket: WebSocket,
         chat_id: str,
@@ -64,8 +61,8 @@ async def handle_service_application(
         from_tool="create_pdf_file"
     )
 
-@dina_agent.handle_response("list_all_appointments")
-async def handle_appointments_listing(
+
+async def handle_list_all_appointments(
         part_content: any,
         websocket: WebSocket,
         chat_id: str,
@@ -73,14 +70,13 @@ async def handle_appointments_listing(
         current_user: User,
         **kwargs
 ):
-
     from app.websocket.utils import send_websocket_data
 
     logging.info("Listing all appointments.")
     await send_websocket_data(
         websocket_data=WebsocketData(
             data="Подоле ви се прикажани сите закажани термини:",
-            data_type="no_stream",
+            data_type="stream",
         ),
         websocket=websocket,
         chat_id=chat_id,

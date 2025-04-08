@@ -1,9 +1,10 @@
-from typing import List, Dict, Optional, AsyncGenerator, Any
+from typing import List, Dict, Optional
 
 from openai import AsyncOpenAI
 
 from app.llms.models import StreamChatLLM
 from app.llms.utils import _get_messages_template
+
 
 class OpenAIStreamChat(StreamChatLLM):
 
@@ -26,4 +27,3 @@ class OpenAIStreamChat(StreamChatLLM):
         async for chunk in stream:
             if chunk.choices[0].delta.content is not None:
                 yield chunk.choices[0].delta.content
-

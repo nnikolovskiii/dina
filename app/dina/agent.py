@@ -1,31 +1,64 @@
 import os
-from typing import Any
 
 from dotenv import load_dotenv
+from pydantic_ai import Tool, RunContext
 from pydantic_ai.messages import ModelRequest, SystemPromptPart
-from starlette.websockets import WebSocket
 
 from app.auth.models.user import User
-from app.databases.mongo_db import MongoDBDatabase
 from app.pydantic_ai_agent.pydantic_agent import Agent
 
-from app.websocket.models import ChatResponse, WebsocketData
 
-load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
+# tool_response.tool_name == "create_appointment" or tool_response.tool_name == "list_all_appointments" \
+#                                             or tool_response.tool_name == "create_pdf_file" or tool_response.tool_name == "pay_for_service":
 
-dina_agent = Agent(
-    'openai:gpt-4o',
-    deps_type=User,
-    retries=1,
-    system_prompt=[
-        "You are an AI assistant that handles performing tasks for administrative institutions in Macedonia.",
-        "Your name is Dina",
-        "Do not answer anything that is not Macedonian institution related."
-        "Only answer in Macedonian."]
-)
+def create_dina_agent():
+    from .tools import create_appointment, pay_for_service, get_service_info, list_all_appointments, create_pdf_file
+    from .handle_agent_response import handle_create_appointment, handle_pay_for_service, handle_create_pdf_file, \
+        handle_list_all_appointments
+    from .extra_info import add_docs_links
+    from app.dina.service_form import service_form
 
-dina_agent.api_key = api_key
+    load_dotenv()
+    api_key = os.getenv("OPENAI_API_KEY")
+
+    dina_agent = Agent(
+        'openai:gpt-4o',
+        deps_type=User,
+        retries=1,
+        system_prompt=[
+            "You are an AI assistant that handles performing tasks for administrative institutions in Macedonia.",
+            "Your name is Dina.",
+            "Do not answer anything that is not Macedonian institution related.",
+            "Only answer in Macedonian. Only write in cyrillic.",
+        ],
+        tools=[
+            Tool(create_appointment, takes_ctx=True),
+            Tool(pay_for_service, takes_ctx=True),
+            Tool(get_service_info, takes_ctx=True),
+            Tool(list_all_appointments, takes_ctx=True),
+            Tool(create_pdf_file, takes_ctx=True),
+        ],
+        response_handlers={
+            "create_appointment": handle_create_appointment,
+            "pay_for_service": handle_pay_for_service,
+            "create_pdf_file": handle_create_pdf_file,
+            "list_all_appointments": handle_list_all_appointments,
+        },
+        extra_info_handlers={
+            "get_service_info": add_docs_links
+        },
+        form_handling=service_form,
+        get_system_prompts=get_system_messages,
+        early_break_tools={"create_appointment", "list_all_appointments", "create_pdf_file", "pay_for_service"}
+    )
+
+    dina_agent.api_key = api_key
+
+    @dina_agent.system_prompt
+    def add_the_users_name(ctx: RunContext[str]) -> str:
+        return f"The user's name is {ctx.deps.full_name}."
+
+    return dina_agent
 
 
 # TODO: Need to change this to be defined once, not two times.
@@ -36,37 +69,6 @@ def get_system_messages(user: User) -> ModelRequest:
             part_kind='system-prompt'),
             SystemPromptPart(content='Your name is Dina', part_kind='system-prompt'),
             SystemPromptPart(
-                content='Do not answer anything that is not Macedonian institution related.Only answer in Macedonian.',
+                content='Do not answer anything that is not Macedonian institution related.Only answer in Macedonian.  Only write in cyrillic.',
                 part_kind='system-prompt'),
             SystemPromptPart(content=f"The user's name is {user.full_name}.", part_kind='system-prompt')])
-
-
-@dina_agent.extra_info("get_service_info")
-async def add_docs_links(
-        websocket: WebSocket,
-        mdb: MongoDBDatabase,
-        tools_used: Any,
-        chat_id: str,
-        response: ChatResponse,
-        **kwargs
-):
-    from app.websocket.utils import send_websocket_data, get_service_links
-
-    links = await get_service_links(mdb=mdb, tool_part=tools_used["get_service_info"])
-
-    await send_websocket_data(
-        websocket_data=WebsocketData(
-            data=links,
-            data_type="stream",
-        ),
-        websocket=websocket,
-        response=response,
-        chat_id=chat_id,
-    )
-
-
-from .tools import *
-from .handle_agent_response import *
-
-print(dina_agent.response_handlers)
-print(dina_agent._function_tools)

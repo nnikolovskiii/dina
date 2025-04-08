@@ -11,9 +11,9 @@ class SetParentFlags(SimpleProcess):
         )
         if first_link_obj is not None:
             link_obj.is_parent = True
-            await self.mdb.update_entry(link_obj)
+            await self.mdb.update_entry(obj_id=link_obj.id, entity=link_obj)
 
-        await self.mdb.update_entry(entity=link_obj, update={self.process_name: True})
+        await self.mdb.update_entry(obj_id=link_obj.id,entity=link_obj, update={self.process_name: True})
 
     @property
     def process_name(self) -> str:

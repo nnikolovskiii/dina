@@ -106,6 +106,7 @@ class StreamPipeline(Pipeline, ABC):
     ) -> AsyncGenerator[Any, None]:
         template = self.template(**kwargs)
 
+        #TODO: Need to test this and for ANthropic this.
         async for data in self.stream_chat_llm.generate(
                 message=template,
                 system_message=system_message,

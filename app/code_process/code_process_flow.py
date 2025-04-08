@@ -42,7 +42,7 @@ async def change_active_files(file_dto: FileActiveListDto, git_url:str, mdb: Mon
         )
 
         code_active_flag.active = active_status
-        await mdb.update_entry(code_active_flag)
+        await mdb.update_entry(obj_id=code_active_flag.id, entity=code_active_flag)
 
         record = await update_records(
             qdb=qdb,

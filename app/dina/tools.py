@@ -2,80 +2,66 @@ import asyncio
 from typing import List, Tuple
 
 from pydantic_ai import RunContext
-from app.container import container
-from app.dina.agent import dina_agent
 from app.dina.models.service_procedure import ServiceProcedure, ServiceType
 from app.dina.pipelines.info_retriever import InfoRetriever, ServiceIds
 from app.llms.models import ChatLLM
 
 
-@dina_agent.system_prompt
-def add_the_users_name(ctx: RunContext[str]) -> str:
-    return f"The user's name is {ctx.deps.full_name}."
-
-
-@dina_agent.tool
 async def list_all_appointments(
         ctx: RunContext[str],
 ):
     """Lists all user appointments when the user needs them. List them all if a user doesn't know an appointment for a certain service.
 
     :param ctx:
-    :param task:
     :return:
     """
 
 
-@dina_agent.tool
 async def create_pdf_file(
         ctx: RunContext[str],
-        task: str
+        service: str
 ) -> str:
-    """Do this when the user asks you just to create some type of document and doesn't explicitly ask for an appoitment nor payment.
+    """Do this when the user asks you just to create some type of document for a given service.
 
     Args:
         ctx: The context.
-        task: The user task to determine the type of document.
+        service: The service for which the document is to be created.
     Returns:
         Returns the download link for the document.
     """
-    return task
+    return service
 
 
-# initiate_service_application_workflow
-@dina_agent.tool
 async def create_appointment(
         ctx: RunContext[str],
-        task: str
+        service: str
 ) -> str:
     """Do this when the user asks for you to create an appointment for a service.
 
     Args:
         ctx: The context.
-        task: The user task to determine the type of document.
+        service: The service for which the appointment is to be created.
     Returns:
         Returns the download link for the document.
     """
-    return task
+    return service
 
 
-@dina_agent.tool
 async def pay_for_service(
         ctx: RunContext[str],
-        task: str
+        service: str
 ) -> str:
     """Do this when the user asks for you to initiate payment for a service.
 
     Args:
         ctx: The context.
-        task: The user task to determine the type of document.
+        service: The service for which the payment is to be initiated.
     Returns:
         Returns the download link for the document.
     """
-    return task
+    return service
 
 
-@dina_agent.tool
 async def get_service_info(
         ctx: RunContext[str],
         question: str
@@ -86,6 +72,7 @@ async def get_service_info(
         ctx: The context.
         question: The user question from which relevant information is retrieved.
     """
+    from app.container import container
     chat_service = container.chat_service()
     mdb = container.mdb()
 

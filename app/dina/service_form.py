@@ -1,14 +1,14 @@
 import logging
 
 from app.auth.models.user import User
-from app.chat_forms.models.payment_details import PaymentDetails
+from app.dina.models.payment_details import PaymentDetails
 from app.container import container
 from app.dina.initiate_transfer.entrypoint import initiate_data_transfer
 from app.dina.models.form_service_data import FormServiceData
 
 from fastapi import WebSocket
 
-from app.chat_forms.models.appointment import Appointment
+from app.dina.models.appointment import Appointment
 from app.websocket.models import WebsocketData, ChatResponse
 
 logging.basicConfig(level=logging.DEBUG)
@@ -27,6 +27,7 @@ async def service_form(
     user_files_service = container.user_files_service()
     form_service = container.forms_service()
     email_service = container.email_service()
+    mdb = container.mdb()
 
     form_service_data: FormServiceData = FormServiceData(**ws_data.data[0])
     intercept_type = ws_data.intercept_type
@@ -76,12 +77,39 @@ async def service_form(
         await send_websocket_data(
             websocket_data=WebsocketData(
                 data="✅ Плаќањет е успешно. Вашето барање е успешно поденесено.",
-                data_type="no_stream",
+                data_type="stream",
             ),
             websocket=websocket,
             chat_id=chat_id,
             response=response
         )
+    elif ws_data.intercept_type == "echo":
+        appointments = await mdb.get_entries(class_type=Appointment,
+                                             doc_filter={"service_type": form_service_data.service_type,
+                                                         "email": current_user.email})
+
+        if len(appointments) == 0:
+            print("Inisde echo", form_service_data.service_name )
+            if form_service_data.service_name  not in no_appointment_services:
+                await send_websocket_data(
+                    websocket_data=WebsocketData(
+                        data="Remind me that I can schedule a timeslot as well.",
+                        data_type="echo",
+                    ),
+                    websocket=websocket,
+                    chat_id=chat_id,
+                    response=response
+                )
+        else:
+            await send_websocket_data(
+                websocket_data=WebsocketData(
+                    data="Tell me that I have also already scheduled an appointment and whether i want to know the details of my appointment.",
+                    data_type="echo",
+                ),
+                websocket=websocket,
+                chat_id=chat_id,
+                response=response
+            )
 
     if ws_data.actions and len(ws_data.actions) > 0:
         ws_data.next_action += 1
@@ -95,7 +123,7 @@ async def service_form(
                 await send_websocket_data(
                     websocket_data=WebsocketData(
                         data="Подоле ви се прикажани сите закажани термини:",
-                        data_type="no_stream",
+                        data_type="stream",
                     ),
                     websocket=websocket,
                     chat_id=chat_id,
@@ -112,13 +140,38 @@ async def service_form(
                     chat_id=chat_id,
                 )
             elif ws_data.intercept_type == "send_email":
-                pass
-                # await email_service.send_email(
-                #     recipient_email=current_user.email,
-                #     subject="Успешно поднесено барање",
-                #     body="Успешно поднесено барање",
-                #     download_link=form_service_data.download_link
-                # )
+                print("inside send email!!!")
+                await email_service.send_email(
+                    recipient_email=current_user.email,
+                    subject="Успешно поднесено барање",
+                    body="Успешно поднесено барање",
+                    download_link=form_service_data.download_link
+                )
+            elif ws_data.intercept_type == "echo":
+                appointments = await mdb.get_entries(class_type=Appointment, doc_filter={"service_type": form_service_data.service_type, "email": current_user.email})
+
+                if len(appointments) == 0:
+                    if form_service_data.service_name not in no_appointment_services:
+                        await send_websocket_data(
+                            websocket_data=WebsocketData(
+                                data="Remind me that I can schedule an appointment as well.",
+                                data_type="echo",
+                            ),
+                            websocket=websocket,
+                            chat_id=chat_id,
+                            response=response
+                        )
+                else:
+                    await send_websocket_data(
+                        websocket_data=WebsocketData(
+                            data="Tell me that I have also already scheduled an appointment and whether i want to know the details of my appointment.",
+                            data_type="echo",
+                        ),
+                        websocket=websocket,
+                        chat_id=chat_id,
+                        response=response
+                    )
+
             else:
                 break
 

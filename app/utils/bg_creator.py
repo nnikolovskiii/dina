@@ -72,7 +72,7 @@ def create_glow_filter(dwg, color, filter_id):
 # Create the drawing
 dwg = svgwrite.Drawing('stacked_triangles.svg', size=('500px', '500px'))
 
-# Base triangle templates and their colors
+# Base triangle pdf_templates and their colors
 base_triangle_li = [
     [(220, 0), (0, 0), (0, 230)],
     [(210, 0), (0, 0), (0, 230)],

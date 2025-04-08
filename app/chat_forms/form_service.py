@@ -8,8 +8,8 @@ from bson import ObjectId
 from app.auth.services.user import UserService
 from pydantic import EmailStr
 from app.databases.mongo_db import MongoDBDatabase, MongoEntry
-from app.chat_forms.templates.driver_licnece import DriverLicence
-from app.chat_forms.templates.persoal_Id import PersonalID
+from app.dina.pdf_templates.driver_licnece import DriverLicence
+from app.dina.pdf_templates.persoal_Id import PersonalID
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -86,7 +86,7 @@ class FormService:
             args[key] = value["value"]
 
         new_obj = class_type(**args)
-        await self.mdb.update_entry(new_obj)
+        await self.mdb.update_entry(obj_id=new_obj.id, entity=new_obj)
 
     def get_missing(self, obj: T, exclude_args: Optional[List[str]] = None) -> dict:
         missing = {f for f, v in obj.model_dump().items() if v is None} - {'id'}
