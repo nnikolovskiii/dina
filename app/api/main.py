@@ -8,7 +8,6 @@ import logging
 
 from app.api.routes import code, chat, test, code_files, docs, links, process, flag, auth, \
     pdf_handler, collection_data, agent
-from app.container import container
 from app.databases.singletons import get_mongo_db, get_qdrant_db
 from app.websocket import websocket
 from fastapi import FastAPI
@@ -52,7 +51,7 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
