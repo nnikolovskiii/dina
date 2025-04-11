@@ -1,9 +1,7 @@
-import asyncio
 from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI
 import logging
 
 from app.api.routes import code, chat, test, code_files, docs, links, process, flag, auth, \
@@ -46,7 +44,8 @@ origins = [
     "http://localhost:4200",
     "http://mkpatka.duckdns.org:8080",
     "http://mkpatka.duckdns.org:5000",
-    "https://nnikolovskiii.ngrok.dev"
+    "https://nnikolovskiii.ngrok.dev",
+    "http://mkpatka.duckdns.org:5000"
 ]
 
 app.add_middleware(
@@ -70,6 +69,9 @@ async def validation_exception_handler(request, exc):
         status_code=400,
         content={"message": "Validation error", "details": exc.errors()}
     )
+@app.get("/test-cors")
+async def test_cors():
+    return {"message": "CORS works!"}
 
 # routes
 app.include_router(code.router, prefix="/code", tags=["code"])
