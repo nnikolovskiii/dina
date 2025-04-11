@@ -42,10 +42,14 @@ origins = [
     "https://localhost.tiangolo.com",
     "http://localhost",
     "http://localhost:4200",
+    "http://localhost:8081",
+    "http://localhost:8082",
+    "http://localhost:8083",
     "http://mkpatka.duckdns.org:8080",
     "http://mkpatka.duckdns.org:5000",
     "https://nnikolovskiii.ngrok.dev",
-    "http://mkpatka.duckdns.org:5000"
+    "http://mkpatka.duckdns.org:5000",
+
 ]
 
 app.add_middleware(
