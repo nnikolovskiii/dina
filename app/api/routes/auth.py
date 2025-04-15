@@ -89,8 +89,8 @@ async def login(
         key="access_token",
         value=f"Bearer {jwt_token}",
         httponly=True,
-        # secure=True,  # Uncomment in production
-        samesite="lax",
+        secure=True,
+        samesite="none",
         max_age=60 * 60 * 24,
     )
 
