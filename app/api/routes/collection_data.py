@@ -1,11 +1,13 @@
 from http import HTTPStatus
 from typing import Dict, Any, Optional
 
-from fastapi import HTTPException, APIRouter
+from fastapi import HTTPException, APIRouter, Depends
 from pydantic import BaseModel, ValidationError
 
 import logging
 
+from app.api.routes.auth import get_current_user
+from app.auth.models.user import User
 from app.container import container
 
 logging.basicConfig(level=logging.DEBUG)
@@ -22,6 +24,7 @@ class CollectionMetadata(BaseModel):
 async def get_collection_data_page(
         collection_dto: CollectionMetadata,
         page: int = 1,
+        current_user: User = Depends(get_current_user)
 ):
     mdb = container.mdb()
 
@@ -31,7 +34,7 @@ async def get_collection_data_page(
             collection_name=collection_dto.name,
             page=page,
             page_size=5,
-            # doc_filter={"email": current_user.email}
+            doc_filter={"email": current_user.email}
         )
         return {
             "items": appointments,
