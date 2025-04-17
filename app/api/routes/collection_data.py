@@ -116,8 +116,11 @@ async def delete_entry(
 @router.post("/add_entry/", status_code=HTTPStatus.CREATED)
 async def get_collection_data_page(
         collection_dto: CollectionMetadata,
+        current_user: User = Depends(get_current_user)
 ):
     mdb = container.mdb()
+
+    collection_dto.attributes["email"] = current_user.email
 
     try:
         obj_id = await mdb.add_entry_dict(
