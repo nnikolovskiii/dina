@@ -103,27 +103,6 @@ async def login(
         }
     }
 
-
-@router.post("/add-user-info")
-async def add_user_info(
-        user_info: UserInfo,
-):
-    user_service = container.user_service()
-    exists = await user_service.check_user_exist(user_info.email)
-    if not exists:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    success = await user_service.encrypt_add_user_info(user_info)
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to add user info")
-
-    return {
-        "status": "success",
-        "message": "User info added successfully",
-        "data": None
-    }
-
-
 @router.get("/get-user-info")
 async def get_user_info(
         email: EmailStr,
@@ -220,3 +199,40 @@ async def get_protected_data(
             "full_name": current_user.full_name
         }
     }
+
+@router.post("/add-user-info")
+async def add_user_info(
+        user_info: UserInfo,
+        current_user: User = Depends(get_current_user)
+):
+    user_service = container.user_service()
+    exists = await user_service.check_user_exist(current_user.email)
+
+    user_info.email = current_user.email
+    user_info.name = current_user.full_name.split(" ")[0]
+    user_info.name = current_user.full_name.split(" ")[1]
+
+    if not exists:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    success = await user_service.encrypt_add_user_info(user_info)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to add user info")
+
+    return {
+        "status": "success",
+        "message": "User info added successfully",
+        "data": None
+    }
+
+
+@router.get("/has-user-info")
+async def get_protected_data(
+        current_user: User = Depends(get_current_user)
+):
+    mdb = container.mdb()
+
+    li = await mdb.get_entries(class_type=UserInfo, doc_filter={"email": current_user.email})
+    exists = len(li) > 0
+
+    return exists
