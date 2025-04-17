@@ -49,7 +49,8 @@ origins = [
     "http://mkpatka.duckdns.org:5000",
     "https://nnikolovskiii.ngrok.dev",
     "http://mkpatka.duckdns.org:5000",
-    "https://nnikkserver.duckdns.org"
+    "https://nnikkserver.duckdns.org",
+    "https://nnikkserver.duckdns.org:5000"
 ]
 
 app.add_middleware(
