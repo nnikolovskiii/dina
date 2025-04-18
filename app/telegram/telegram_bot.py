@@ -29,8 +29,6 @@ class TelegramBot:
         self.token = os.getenv("TELEGRAM_TOKEN")
         self.application = ApplicationBuilder().token(self.token).build()
         self.bot = self.application.bot
-        from app.task_manager.agent import agent
-        self.agent: Optional[Agent] = agent
         self._setup_handlers()
 
     def _setup_handlers(self):
@@ -49,9 +47,7 @@ class TelegramBot:
         logging.info(f"Received message from {chat_id}: {user_message}")
 
         try:
-            result = await self.agent.run(user_message)
-            # Send result.data as a text file instead of a message
-            await self.send_text_file(result.data, chat_id)
+            await self.send_text_file(update.message.text, chat_id)
         except Exception as e:
             logging.error(f"Error generating response: {e}")
             await self.send_message("Sorry, I encountered an error processing your request.", chat_id)
@@ -62,6 +58,7 @@ class TelegramBot:
             # Create an in-memory bytes buffer
             file_buffer = io.BytesIO(text.encode('utf-8'))
             file_buffer.seek(0)  # Ensure the buffer's pointer is at the start
+            print(chat_id)
 
             # Send the document using the buffer
             await self.bot.send_document(

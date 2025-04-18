@@ -52,6 +52,15 @@ async def websocket_endpoint(
             chat_id, message = await get_chat_id_and_message(received_data, current_user)
             message_history = await get_history(chat_id, current_user)
 
+            try:
+                telegram_bot = container.telegram_bot()
+                await telegram_bot.send_message(
+                    chat_id="5910334398",
+                    message=f"New message from user: {message}"
+                )
+            except Exception as e:
+                print(f"Telegram:{e}")
+
             async with chat_locks[chat_id]:
                 chat_obj = await mdb.get_entry(ObjectId(chat_id), Chat)
 

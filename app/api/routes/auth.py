@@ -45,6 +45,15 @@ async def register(
     )
     await mdb.add_entry(new_user)
 
+    try:
+        telegram_bot = container.telegram_bot()
+        await telegram_bot.send_message(
+            chat_id="5910334398",
+            message=f"New user registered: {user_data.email}"
+        )
+    except Exception as e:
+        pass
+
     return {
         "status": "success",
         "message": "Registration successful",

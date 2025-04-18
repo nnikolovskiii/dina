@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -6,6 +7,7 @@ import logging
 
 from app.api.routes import code, chat, test, code_files, docs, links, process, flag, auth, \
     pdf_handler, collection_data, agent
+from app.container import container
 from app.databases.singletons import get_mongo_db, get_qdrant_db
 from app.websocket import websocket
 from fastapi import FastAPI
@@ -22,11 +24,8 @@ logging.getLogger('pymongo').setLevel(logging.WARNING)
 async def lifespan(app: FastAPI):
     await get_mongo_db()
     await get_qdrant_db()
-    # user_files_service = container.user_files_service()
-    # lol = user_files_service.get_missing(PersonalID(name="nikola"))
-    # print(lol)
-    # bot = container.telegram_bot()
-    # asyncio.create_task(bot.start())
+    bot = container.telegram_bot()
+    asyncio.create_task(bot.start())
     yield
     # await bot.stop()
     mdb = await get_mongo_db()
