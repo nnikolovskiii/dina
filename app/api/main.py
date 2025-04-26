@@ -92,6 +92,8 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(pdf_handler.router, prefix="/pdf", tags=["pdf"])
 
 app.include_router(agent.router, prefix="/agent", tags=["agent"])
+app.include_router(agent.router, prefix="/qdrant", tags=["qdrant"])
+
 
 
 if __name__ == "__main__":
