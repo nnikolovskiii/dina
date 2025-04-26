@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 from app.api.routes import code, chat, test, code_files, docs, links, process, flag, auth, \
-    pdf_handler, collection_data, agent
+    pdf_handler, collection_data, agent, qdrant
 from app.container import container
 from app.databases.singletons import get_mongo_db, get_qdrant_db
 from app.websocket import websocket
@@ -92,7 +92,7 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(pdf_handler.router, prefix="/pdf", tags=["pdf"])
 
 app.include_router(agent.router, prefix="/agent", tags=["agent"])
-app.include_router(agent.router, prefix="/qdrant", tags=["qdrant"])
+app.include_router(qdrant.router, prefix="/qdrant", tags=["qdrant"])
 
 
 
