@@ -45,19 +45,29 @@ class QdrantDatabase:
     async def embedd_and_upsert_record(
         self,
         value: str,
-        entity: T,
+        entity: Optional[T] = None,
         collection_name: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> List[float]:
-        collection_name = entity.__class__.__name__ if collection_name is None else collection_name
+        # If collection_name isn't provided and we have an entity, use its class name
+        if collection_name is None and entity is not None:
+            collection_name = entity.__class__.__name__
+        # If we still don't have a collection_name, we need one
+        if collection_name is None:
+            raise ValueError("Either entity or collection_name must be provided")
 
         if not await self.collection_exists(collection_name):
             await self.create_collection(collection_name)
 
         vector = await self.embedding_model.generate(value)
-        payload = entity.model_dump()
-        if metadata:
-            payload.update(metadata)
+        
+        # Initialize payload with metadata or empty dict
+        payload = metadata.copy() if metadata else {}
+        
+        # If entity exists, add its data to payload
+        if entity is not None:
+            entity_data = entity.model_dump()
+            payload.update(entity_data)
 
         await self.client.upsert(
             collection_name=collection_name,
@@ -267,4 +277,3 @@ class QdrantDatabase:
                 must=conditions
             )
         return field_condition
-
