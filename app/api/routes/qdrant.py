@@ -23,6 +23,7 @@ qdb_dep = Annotated[QdrantDatabase, Depends(get_qdrant_db)]
 class QdrantRecordDto(BaseModel):
     value: str
     metadata: dict
+    collection_name: str
 
 
 @router.post("/add_record/")
@@ -30,7 +31,8 @@ async def get_finished_processes(qdrant_record: QdrantRecordDto, qdb: qdb_dep):
     try:
         await qdb.embedd_and_upsert_record(
             value=qdrant_record.value,
-            metadata=qdrant_record.metadata
+            metadata=qdrant_record.metadata,
+            collection_name=qdrant_record.collection_name
         )
 
         return {"status": "success", "message": "Record added successfully"}
