@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "dina"
+name = "dina-nik"
 version = "0.1.0"
 description = ""
 authors = ["Nikola Nikolovski <nikolovski.nikola42@gmail.com>"]
