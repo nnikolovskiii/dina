@@ -28,6 +28,7 @@ class QdrantDatabase:
     def __init__(self, url: Optional[str] = None):
         load_dotenv()
         url = os.getenv("QDRANT_URL") if url is None else url
+        print(url)
         self.client = AsyncQdrantClient(url=f"http://{url}:6333")
 
     async def set_embedding_model(self, embedding_model):
